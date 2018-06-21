@@ -1,0 +1,21 @@
+version: '3'
+
+volumes:
+  - dbdata
+  - downloads
+
+services:
+    loader:
+      build:
+        context: ./
+        dockerfile: Dockerfile
+      image: dbp-same-thing:latest
+#      ports:
+#        - "8001:8000"
+#      environment:
+#        -
+      volumes:
+        - ./same_thing:/usr/src/app/same_thing:ro
+        - dbdata:/dbdata
+        - downloads:/downloads
+      command: ["python" , "-m", "same_thing.loader"]

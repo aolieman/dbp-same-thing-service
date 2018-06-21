@@ -30,7 +30,9 @@ RUN pip install Cython pipenv
 RUN pipenv install --system
 
 RUN mkdir same_thing
-RUN mkdir /downloads
 COPY ./same_thing ./same_thing
+RUN mkdir /dbdata
+RUN mkdir /downloads
+VOLUME [ "/usr/src/app", "/dbdata", "/downloads" ]
 
-CMD [ "python", "-m same_thing.loader" ]
+CMD [ "python", "-m", "same_thing.loader" ]
