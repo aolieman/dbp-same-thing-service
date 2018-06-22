@@ -25,7 +25,7 @@ async def fetch_parts(base_url):
                 if part_href not in existing_parts
             )
         )
-        print('All parts done!', flush=True)
+        print('All parts downloaded!', flush=True)
 
 
 async def list_parts(session, base_url):
