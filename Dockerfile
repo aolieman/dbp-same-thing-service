@@ -2,6 +2,7 @@ FROM python:3
 
 MAINTAINER Alex Olieman <alex@olieman.net>
 
+RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update \
     && apt-get install -y \
@@ -10,7 +11,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
        libbz2-dev \
        libgflags-dev \
        liblz4-dev \
-       libzstd-dev \
+    && apt-get -t stretch-backports install -y "libzstd-dev" \
     && apt-get clean
 
 RUN mkdir /build \
