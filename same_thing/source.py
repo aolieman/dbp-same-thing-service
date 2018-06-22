@@ -13,13 +13,16 @@ BASE_URL = 'http://downloads.dbpedia.org/databus/global/persistence-core/cluster
 
 
 async def fetch_parts(base_url):
+    existing_parts = set(os.listdir(DOWNLOAD_PATH))
+
     conn = aiohttp.TCPConnector(limit_per_host=10)
     async with aiohttp.ClientSession(connector=conn) as session:
         parts = await list_parts(session, base_url)
         await asyncio.gather(
             *(
-                download_part(session, BASE_URL + part_url)
-                for part_url in parts
+                download_part(session, BASE_URL + part_href)
+                for part_href in parts
+                if part_href not in existing_parts
             )
         )
         print('All parts done!', flush=True)
@@ -32,9 +35,9 @@ async def list_parts(session, base_url):
 
     soup = BeautifulSoup(index_html, 'lxml')
     part_anchors = soup.find_all(href=only_parts)
-    part_urls = list(map(itemgetter('href'), part_anchors))
+    part_hrefs = list(map(itemgetter('href'), part_anchors))
     print(soup.title.get_text(), flush=True)
-    return part_urls
+    return part_hrefs
 
 
 def only_parts(href):

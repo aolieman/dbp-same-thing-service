@@ -1,8 +1,8 @@
 version: '3'
 
 volumes:
-  - dbdata
-  - downloads
+  dbdata:
+  downloads:
 
 services:
     loader:
