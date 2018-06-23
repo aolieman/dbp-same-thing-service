@@ -1,4 +1,5 @@
 import os
+import time
 
 import rocksdb
 from rocksdb import CompressionType, BackupEngine
@@ -17,8 +18,39 @@ def get_connection(db_name, db_options=None, read_only=True):
     if db_options is None:
         db_options = get_rocksdb_options()
 
-    db_path = os.path.join(DB_ROOT_PATH, db_name)
+    if db_name.startswith(DB_ROOT_PATH):
+        db_path = db_name
+    else:
+        db_path = os.path.join(DB_ROOT_PATH, db_name)
+
     return rocksdb.DB(db_path, db_options, read_only)
+
+
+def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
+    data_dbs = [
+        os.path.join(DB_ROOT_PATH, sdir)
+        for sdir in os.listdir(DB_ROOT_PATH)
+        if looks_like_datadb(sdir)
+    ]
+    if data_dbs:
+        latest_db = max(data_dbs, key=os.path.getmtime)
+        return get_connection(latest_db, **kwargs)
+    elif retry < max_retries:
+        wait_seconds = 2 ** retry
+        print(f'No DB found: will retry in {wait_seconds} seconds', flush=True)
+        time.sleep(wait_seconds)
+        return get_connection_to_latest(max_retries, 1 + retry, **kwargs)
+    else:
+        raise OSError(f'No DBs found in {DB_ROOT_PATH}')
+
+
+def looks_like_datadb(dir_name):
+    return (
+        dir_name.startswith(DATA_DB_PREFIX)
+        and os.path.isdir(
+            os.path.join(DB_ROOT_PATH, dir_name)
+        )
+    )
 
 
 def split_values(value_bytes):
