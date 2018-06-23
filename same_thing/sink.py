@@ -38,14 +38,10 @@ async def load_all_parts(executor):
             traceback.print_exc()
 
     now = get_timestamp()
-    print(f'[{now}] All parts loaded! Compacting...', flush=True)
+    print(f'[{now}] All parts loaded! Saving backup...', flush=True)
     for part in succeeded:
         admin_db.put(part.encode('utf8'), now.encode('utf8'))
 
-    data_db.compact_range()
-
-    now = get_timestamp()
-    print(f'[{now}] Done compacting. Saving backup...', flush=True)
     backupper.create_backup(data_db, flush_before_backup=True)
     backupper.purge_old_backups(3)
     now = get_timestamp()
