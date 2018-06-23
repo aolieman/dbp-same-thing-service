@@ -5,10 +5,12 @@ from rocksdb import CompressionType, BackupEngine
 from rocksdb.interfaces import AssociativeMergeOperator
 
 DB_ROOT_PATH = '/dbdata'
+BACKUP_PATH = os.path.join(DB_ROOT_PATH, 'backups')
+DATA_DB_PREFIX = 'uris_'
 SEPARATOR = b'<>'
 
 
-backupper = BackupEngine(DB_ROOT_PATH + '/backups')
+backupper = BackupEngine(BACKUP_PATH)
 
 
 def get_connection(db_name, db_options=None, read_only=True):
