@@ -1,6 +1,7 @@
 FROM python:3
 
-MAINTAINER Alex Olieman <alex@olieman.net>
+LABEL version="0.1.0"
+LABEL maintainer="Alex Olieman <alex@olieman.net>"
 
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
 RUN DEBIAN_FRONTEND=noninteractive \
