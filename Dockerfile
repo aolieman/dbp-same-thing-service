@@ -23,6 +23,7 @@ RUN mkdir /build \
     && rm -rf /build
 
 WORKDIR /usr/src/app
+COPY gunicorn_config.py ./
 
 # to avoid pip cache, this needs to be falsy
 ENV PIP_NO_CACHE_DIR=false
