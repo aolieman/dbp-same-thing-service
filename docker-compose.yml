@@ -6,9 +6,6 @@ volumes:
 
 services:
     loader:
-      build:
-        context: ./
-        dockerfile: Dockerfile
       image: aolieman/dbp-same-thing:latest
 #      environment:
 #        -
