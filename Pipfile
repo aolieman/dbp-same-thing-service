@@ -14,7 +14,7 @@ lxml = "*"
 python-rocksdb = "*"
 "beautifulsoup4" = "*"
 apistar = "*"
-uvicorn = "*"
+gunicorn = "*"
 
 [dev-packages]
 ipython = "*"
