@@ -5,17 +5,29 @@ volumes:
   downloads:
 
 services:
-    loader:
-      build:
-        context: ./
-        dockerfile: Dockerfile
+#    loader:
+#      build:
+#        context: ./
+#        dockerfile: Dockerfile
+#      image: dbp-same-thing:latest
+##      ports:
+##        - "8001:8000"
+##      environment:
+##        -
+#      volumes:
+#        - ./same_thing:/usr/src/app/same_thing:ro
+#        - dbdata:/dbdata
+#        - downloads:/downloads
+#      command: ["python" , "-m", "same_thing.loader"]
+
+    http:
       image: dbp-same-thing:latest
-#      ports:
-#        - "8001:8000"
+      ports:
+        - "5000:5000"
 #      environment:
 #        -
       volumes:
         - ./same_thing:/usr/src/app/same_thing:ro
         - dbdata:/dbdata
         - downloads:/downloads
-      command: ["python" , "-m", "same_thing.loader"]
+      command: ["python" , "-m", "same_thing.app"]
