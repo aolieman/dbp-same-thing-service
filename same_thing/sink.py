@@ -25,7 +25,7 @@ async def load_all_parts(executor):
     loading_tasks = [
         loop.run_in_executor(executor, load_part, data_db, part_name)
         for part_name in parts
-        if not admin_db.get(PART_FILE_KEY + part_name.encode('utf8'))
+        if not admin_db.get(get_part_key(part_name))
     ]
     now = get_timestamp()
     print(f'[{now}] Waiting for loading tasks', flush=True)
@@ -38,18 +38,18 @@ async def load_all_parts(executor):
             traceback.print_exc()
 
     now = get_timestamp()
-    print(f'[{now}] All parts loaded! Compacting...', flush=True)
+    print(f'[{now}] All parts loaded! Saving backup...', flush=True)
     for part in succeeded:
-        admin_db.put(part.encode('utf8'), now.encode('utf8'))
+        admin_db.put(get_part_key(part), now.encode('utf8'))
 
-    data_db.compact_range()
-
-    now = get_timestamp()
-    print(f'[{now}] Done compacting. Saving backup...', flush=True)
     backupper.create_backup(data_db, flush_before_backup=True)
     backupper.purge_old_backups(3)
     now = get_timestamp()
     print(f'[{now}] Backup saved. All done!', flush=True)
+
+
+def get_part_key(part_name):
+    return PART_FILE_KEY + part_name.encode('utf8')
 
 
 def load_part(data_db, part):

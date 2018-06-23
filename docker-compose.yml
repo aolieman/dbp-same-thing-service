@@ -1,0 +1,26 @@
+version: '3'
+
+volumes:
+  dbdata:
+  downloads:
+
+services:
+    loader:
+      image: aolieman/dbp-same-thing:latest
+#      environment:
+#        -
+      volumes:
+        - dbdata:/dbdata
+        - downloads:/downloads
+      command: ["python" , "-m", "same_thing.loader"]
+
+    http:
+      image: aolieman/dbp-same-thing:latest
+      ports:
+        - "127.0.0.1:8027:8000"
+#      environment:
+#        -
+      volumes:
+        - dbdata:/dbdata
+        - downloads:/downloads
+      command: ["gunicorn" , "-c", "python:gunicorn_config", "same_thing.app:app"]
