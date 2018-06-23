@@ -1,5 +1,6 @@
 import asyncio
 import os
+from datetime import datetime, timezone
 from operator import itemgetter
 
 import aiofiles
@@ -18,14 +19,22 @@ async def fetch_parts(base_url):
     conn = aiohttp.TCPConnector(limit_per_host=10)
     async with aiohttp.ClientSession(connector=conn) as session:
         parts = await list_parts(session, base_url)
-        await asyncio.gather(
-            *(
-                download_part(session, BASE_URL + part_href)
-                for part_href in parts
-                if part_href not in existing_parts
+        new_parts = parts - existing_parts
+        if new_parts:
+            # delete parts that are no longer listed
+            old_parts = existing_parts - parts
+            for part_name in old_parts:
+                os.unlink(os.path.join(DOWNLOAD_PATH, part_name))
+
+            # download newly listed parts
+            await asyncio.gather(
+                *(
+                    download_part(session, BASE_URL + part_href)
+                    for part_href in new_parts
+                )
             )
-        )
-        print('All parts downloaded!', flush=True)
+            now = get_timestamp()
+            print(f'[{now}] All parts downloaded!', flush=True)
 
 
 async def list_parts(session, base_url):
@@ -35,7 +44,7 @@ async def list_parts(session, base_url):
 
     soup = BeautifulSoup(index_html, 'lxml')
     part_anchors = soup.find_all(href=only_parts)
-    part_hrefs = list(map(itemgetter('href'), part_anchors))
+    part_hrefs = set(map(itemgetter('href'), part_anchors))
     print(soup.title.get_text(), flush=True)
     return part_hrefs
 
@@ -49,7 +58,8 @@ async def download_part(session, url):
         async with session.get(url) as response:
             filename = os.path.basename(url)
             filepath = os.path.join(DOWNLOAD_PATH, filename)
-            print(f'Downloading {filename}', flush=True)
+            now = get_timestamp()
+            print(f'[{now}] Downloading {filename}', flush=True)
 
             async with aiofiles.open(filepath, 'wb') as af:
                 while True:
@@ -58,4 +68,9 @@ async def download_part(session, url):
                         break
                     await af.write(chunk)
 
-        print(f'Finished {filename}', flush=True)
+        now = get_timestamp()
+        print(f'[{now}] Finished {filename}', flush=True)
+
+
+def get_timestamp():
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec='seconds')
