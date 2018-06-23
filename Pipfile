@@ -13,6 +13,8 @@ async-timeout = "*"
 lxml = "*"
 python-rocksdb = "*"
 "beautifulsoup4" = "*"
+apistar = "*"
+uvicorn = "*"
 
 [dev-packages]
 ipython = "*"
