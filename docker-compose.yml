@@ -6,7 +6,7 @@ volumes:
 
 services:
     loader:
-      image: aolieman/dbp-same-thing:latest
+      image: aolieman/dbp-same-thing-service:latest
 #      environment:
 #        -
       volumes:
@@ -15,7 +15,7 @@ services:
       command: ["python" , "-m", "same_thing.loader"]
 
     http:
-      image: aolieman/dbp-same-thing:latest
+      image: aolieman/dbp-same-thing-service:latest
       ports:
         - "127.0.0.1:8027:8000"
 #      environment:
