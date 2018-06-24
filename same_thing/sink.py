@@ -43,10 +43,13 @@ async def load_all_parts(executor):
         for part in succeeded:
             admin_db.put(get_part_key(part), now.encode('utf8'))
 
-    backupper.create_backup(data_db, flush_before_backup=True)
-    backupper.purge_old_backups(3)
-    now = get_timestamp()
-    print(f'[{now}] Backup saved. All done!', flush=True)
+        backupper.create_backup(data_db, flush_before_backup=True)
+        backupper.purge_old_backups(3)
+        now = get_timestamp()
+        print(f'[{now}] Backup saved. All done!', flush=True)
+
+    # close the event loop
+    loop.stop()
 
 
 def get_part_key(part_name):
