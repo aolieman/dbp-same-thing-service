@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.6
 
 LABEL version="0.1.2"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
