@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 
 DOWNLOAD_PATH = '/downloads'
-BASE_URL = 'http://downloads.dbpedia.org/databus/global/persistence-core/cluster-iri-provenance-ntriples/'
+BASE_URL = 'http://downloads.dbpedia.org/databus/global-ids-rdf/2018.11.09/'
 
 
 async def fetch_parts(base_url):
