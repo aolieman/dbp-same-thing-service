@@ -8,7 +8,7 @@ from .db import get_connection, backupper, DATA_DB_PREFIX
 from .source import DOWNLOAD_PATH, get_timestamp
 
 DBP_GLOBAL_PREFIX = 'http://'
-DBP_GLOBAL_MARKER = 'id.dbpedia.org/global/'
+DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
 PART_FILE_KEY = b'file:'
 UUID_RE = re.compile(r'part-\d+-([a-fA-F0-9\-]+)\.(?:nt|txt)\.bz2')
 
