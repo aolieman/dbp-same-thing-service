@@ -8,7 +8,7 @@ from .db import get_connection, backupper, DATA_DB_PREFIX
 from .source import DOWNLOAD_PATH, get_timestamp
 
 DBP_GLOBAL_PREFIX = 'http://'
-DBP_GLOBAL_MARKER = 'id.dbpedia.org/global/'
+DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
 PART_FILE_KEY = b'file:'
 UUID_RE = re.compile(r'part-\d+-([a-fA-F0-9\-]+)\.(?:nt|txt)\.bz2')
 
@@ -61,14 +61,18 @@ def load_part(data_db, part):
     triple_count = 0
     now = get_timestamp()
     print(f'[{now}] Loading: {part}', flush=True)
+
+    prov_was_derived_from = 'http://www.w3.org/ns/prov#wasDerivedFrom'
+
     with bz2.open(part_path) as triples:
         for line in triples:
-            subj, _, obj = get_uris_from_line(line.decode('utf8'))
-            dbp_global = subj.lstrip(DBP_GLOBAL_PREFIX).encode('utf8')
-            local_id = obj.encode('utf8')
-            data_db.merge(dbp_global, local_id, disable_wal=True)
-            data_db.put(local_id, dbp_global, disable_wal=True)
-            triple_count += 1
+            subj, pred, obj = parse_triple(line.decode('utf8'))
+            if pred == prov_was_derived_from:
+                dbp_global = subj.lstrip(DBP_GLOBAL_PREFIX).encode('utf8')
+                local_id = obj.encode('utf8')
+                data_db.merge(dbp_global, local_id, disable_wal=True)
+                data_db.put(local_id, dbp_global, disable_wal=True)
+                triple_count += 1
 
     now = get_timestamp()
     print(f'[{now}] Finished {triple_count} triples from {part}')
@@ -76,18 +80,27 @@ def load_part(data_db, part):
 
 
 iri_pattern = r'<(?:[^\x00-\x1F<>"{}|^`\\]|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*>'
+literal_capture_pattern = rf'"(?P<value>.+)"\^\^{iri_pattern}'
+literal_int_pattern = rf'(?:"\d+"\^\^{iri_pattern})'
 ntriple_pattern = (rf'(?P<subject>{iri_pattern})\s*'
                    rf'(?P<predicate>{iri_pattern})\s*'
-                   rf'(?P<object>{iri_pattern})\s*\.')
+                   rf'(?P<object>{iri_pattern}|{literal_int_pattern})\s*\.')
+
+literal_capture_re = re.compile(literal_capture_pattern)
+literal_int_re = re.compile(literal_int_pattern)
 ntriple_re = re.compile(ntriple_pattern)
 
 
 def parse_triple(ntriple_line):
-    return ntriple_re.search(ntriple_line).groups()
+    match = ntriple_re.search(ntriple_line)
+    if match:
+        subj, pred, obj = match.groups()
+        subj = subj.strip('<>')
+        pred = pred.strip('<>')
+        if obj.startswith('<'):
+            obj = obj.strip('<>')
+        elif literal_int_re.match(obj):
+            value = literal_capture_re.match(obj).group('value')
+            obj = int(value)
 
-
-def get_uris_from_line(ntriple_line):
-    return tuple(
-        uri.strip('<>')
-        for uri in parse_triple(ntriple_line)
-    )
+        return subj, pred, obj
