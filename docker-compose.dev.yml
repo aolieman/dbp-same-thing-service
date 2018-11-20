@@ -21,7 +21,7 @@ services:
     http:
       image: dbp-same-thing:develop
       ports:
-        - "127.0.0.1:5000:5000"
+        - "127.0.0.1:8027:5000"
 #      environment:
 #        -
       volumes:
