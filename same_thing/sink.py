@@ -1,35 +1,42 @@
 import asyncio
 import bz2
 import os
-import re
 import traceback
 
 from .db import get_connection, backupper, DATA_DB_PREFIX
-from .source import DOWNLOAD_PATH, get_timestamp
+from .source import DOWNLOAD_PATH, print_with_timestamp, get_snapshot_path, get_timestamp
 
 DBP_GLOBAL_PREFIX = 'https://'
 DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
-PART_FILE_KEY = b'file:'
-UUID_RE = re.compile(r'part-\d+-([a-fA-F0-9\-]+)\.(?:nt|txt)\.bz2')
+SNAPSHOT_KEY = b'snapshot:'
+PART_TARGET_SIZE = 100 * 1024**2
 
 
-async def load_snapshot(executor):
-    now = get_timestamp()
-    print(f'[{now}] Loading all downloaded parts', flush=True)
-    parts = os.listdir(DOWNLOAD_PATH)
-    dataset_uuid = UUID_RE.search(parts[0]).group(1)
+async def load_snapshot(executor, snapshot_name):
+    print_with_timestamp(f'Loading latest downloaded snapshot')
     admin_db = get_connection('admin', read_only=False)
-    data_db = get_connection(DATA_DB_PREFIX + dataset_uuid, read_only=False)
-
     loop = asyncio.get_event_loop()
+    snapshot_key = get_snapshot_key(snapshot_name)
+    if admin_db.get(snapshot_key):
+        print_with_timestamp(f'Snapshot {snapshot_name} has already been loaded')
+        loop.stop()
+
+    data_db = get_connection(DATA_DB_PREFIX + snapshot_name, read_only=False)
+    snapshot_path = os.path.join(DOWNLOAD_PATH, get_snapshot_path(snapshot_name))
+
     loading_tasks = [
-        loop.run_in_executor(executor, load_part, data_db, part_name)
-        for part_name in parts
-        if not admin_db.get(get_part_key(part_name))
+        loop.run_in_executor(
+            executor,
+            load_part,
+            data_db,
+            part_number,
+            chunk_start,
+            chunk_end
+        )
+        for part_number, chunk_start, chunk_end in compute_parts(snapshot_path)
     ]
     if loading_tasks:
-        now = get_timestamp()
-        print(f'[{now}] Waiting for loading tasks', flush=True)
+        print_with_timestamp(f'Waiting for loading tasks')
         completed, pending = await asyncio.wait(loading_tasks)
         succeeded = []
         for task in completed:
@@ -38,29 +45,45 @@ async def load_snapshot(executor):
             except Exception:
                 traceback.print_exc()
 
+        print_with_timestamp(f'Loading finished! Saving backup...')
         now = get_timestamp()
-        print(f'[{now}] All parts loaded! Saving backup...', flush=True)
-        for part in succeeded:
-            admin_db.put(get_part_key(part), now.encode('utf8'))
+        admin_db.put(snapshot_key, now.encode('utf8'))
 
         backupper.create_backup(data_db, flush_before_backup=True)
         backupper.purge_old_backups(3)
-        now = get_timestamp()
-        print(f'[{now}] Backup saved. All done!', flush=True)
+        print_with_timestamp(f'Backup saved. All done!')
 
     # close the event loop
     loop.stop()
 
 
-def get_part_key(part_name):
-    return PART_FILE_KEY + part_name.encode('utf8')
+def compute_parts(file_path, size=PART_TARGET_SIZE, skip_first_line=True):
+    with open(file_path, 'rb') as f:
+        part_number = 0
+        file_end = f.seek(0, os.SEEK_END)
+        chunk_end = f.seek(0, os.SEEK_SET)
+        if skip_first_line:
+            header = f.readline()
+            chunk_end = f.tell()
+            print_with_timestamp(f'Skipped header: {header}')
+
+        while chunk_end < file_end:
+            chunk_start = f.tell()
+            f.seek(size, os.SEEK_CUR)
+            f.readline()
+            chunk_end = f.tell()
+            yield part_number, chunk_start, chunk_end
+            part_number += 1
 
 
-def load_part(data_db, part):
+def get_snapshot_key(snapshot_name):
+    return SNAPSHOT_KEY + snapshot_name.encode('utf8')
+
+
+def load_part(data_db, part_number, chunk_start, chunk_end):
     part_path = os.path.join(DOWNLOAD_PATH, part)
     triple_count = 0
-    now = get_timestamp()
-    print(f'[{now}] Loading: {part}', flush=True)
+    print_with_timestamp(f'Loading: {part}', flush=True)
 
     prov_was_derived_from = 'http://www.w3.org/ns/prov#wasDerivedFrom'
 

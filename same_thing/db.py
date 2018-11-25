@@ -7,7 +7,7 @@ from rocksdb.interfaces import AssociativeMergeOperator
 
 DB_ROOT_PATH = '/dbdata'
 BACKUP_PATH = os.path.join(DB_ROOT_PATH, 'backups')
-DATA_DB_PREFIX = 'uris_'
+DATA_DB_PREFIX = 'snapshot_'
 SEPARATOR = b'<>'
 
 

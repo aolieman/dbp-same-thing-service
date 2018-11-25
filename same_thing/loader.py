@@ -1,3 +1,4 @@
+import asyncio
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 
@@ -11,9 +12,14 @@ CPU_COUNT = multiprocessing.cpu_count()
 
 
 async def load_uris():
-    await fetch_latest_snapshot(BASE_URL)
-    executor = ThreadPoolExecutor(max_workers=min(16, 2*CPU_COUNT))
-    await load_snapshot(executor)
+    try:
+        latest_snapshot = await fetch_latest_snapshot(BASE_URL)
+        executor = ThreadPoolExecutor(max_workers=min(16, 2*CPU_COUNT))
+        await load_snapshot(executor, latest_snapshot)
+    except Exception:
+        loop = asyncio.get_event_loop()
+        loop.stop()
+        raise
 
 if __name__ == '__main__':
     run(load_uris(), use_uvloop=True)
