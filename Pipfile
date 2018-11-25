@@ -15,6 +15,7 @@ python-rocksdb = "*"
 "beautifulsoup4" = "*"
 apistar = "*"
 gunicorn = "*"
+tqdm = "*"
 
 [dev-packages]
 ipython = "*"

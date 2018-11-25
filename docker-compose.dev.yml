@@ -17,6 +17,7 @@ services:
         - dbdata:/dbdata
         - downloads:/downloads
       command: ["python" , "-m", "same_thing.loader"]
+      tty: true
 
     http:
       image: dbp-same-thing:develop
