@@ -3,12 +3,17 @@ import bz2
 import os
 import traceback
 
+import aiofiles
+from aiofiles.os import stat
+from tqdm import tqdm
+
 from .db import get_connection, backupper, DATA_DB_PREFIX
 from .source import DOWNLOAD_PATH, print_with_timestamp, get_snapshot_path, get_timestamp
 
 DBP_GLOBAL_PREFIX = 'https://'
 DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
 SNAPSHOT_KEY = b'snapshot:'
+SINGLETON_LOCAL_SEPARATOR = b'||'
 PART_TARGET_SIZE = 100 * 1024**2
 
 
@@ -24,34 +29,35 @@ async def load_snapshot(executor, snapshot_name):
     data_db = get_connection(DATA_DB_PREFIX + snapshot_name, read_only=False)
     snapshot_path = os.path.join(DOWNLOAD_PATH, get_snapshot_path(snapshot_name))
 
-    loading_tasks = [
-        loop.run_in_executor(
-            executor,
-            load_part,
-            data_db,
-            part_number,
-            chunk_start,
-            chunk_end
-        )
-        for part_number, chunk_start, chunk_end in compute_parts(snapshot_path)
-    ]
-    if loading_tasks:
-        print_with_timestamp(f'Waiting for loading tasks')
-        completed, pending = await asyncio.wait(loading_tasks)
-        succeeded = []
-        for task in completed:
-            try:
-                succeeded.append(task.result())
-            except Exception:
-                traceback.print_exc()
+    stream_reader = StreamingBZ2File(snapshot_path)
+    tsv_headers = None
+    async for tsv_line in stream_reader.read_lines():
+        if tsv_headers is None:
+            tsv_headers = tsv_line.split(b'\t')
+            assert [b'original_iri',
+                    b'singleton_id_base58',
+                    b'cluster_id_base58'] == tsv_headers, f'unexpected headers: {tsv_headers}'
+            continue
 
-        print_with_timestamp(f'Loading finished! Saving backup...')
-        now = get_timestamp()
-        admin_db.put(snapshot_key, now.encode('utf8'))
+        try:
+            local_iri, singleton_id, cluster_id = tsv_line.split(b'\t')
+        except ValueError:
+            print(repr(tsv_line))
+            continue
 
-        backupper.create_backup(data_db, flush_before_backup=True)
-        backupper.purge_old_backups(3)
-        print_with_timestamp(f'Backup saved. All done!')
+        singleton_and_local = singleton_id + SINGLETON_LOCAL_SEPARATOR + local_iri
+        data_db.merge(cluster_id, singleton_and_local, disable_wal=True)
+        data_db.put(local_iri, cluster_id, disable_wal=True)
+        if not singleton_id == cluster_id:
+            data_db.put(singleton_id, cluster_id, disable_wal=True)
+
+    print_with_timestamp(f'Loading finished! Saving backup...')
+    now = get_timestamp()
+    admin_db.put(snapshot_key, now.encode('utf8'))
+
+    backupper.create_backup(data_db, flush_before_backup=True)
+    backupper.purge_old_backups(3)
+    print_with_timestamp(f'Backup saved. All done!')
 
     # close the event loop
     loop.stop()
@@ -100,3 +106,51 @@ def load_part(data_db, part_number, chunk_start, chunk_end):
     now = get_timestamp()
     print(f'[{now}] Finished {triple_count} triples from {part}')
     return part
+
+
+class StreamingBZ2File:
+    # TODO: implement multi-stream decompression
+
+    def __init__(self, file_path, chunk_size=4*1024):
+        assert chunk_size > 0, '`chunk_size` needs a non-zero number of bytes'
+        self.decompressor = bz2.BZ2Decompressor()
+        self.file_path = file_path
+        self.chunk_size = chunk_size
+
+    async def read_lines(self):
+        incomplete_line = b''
+        async with aiofiles.open(self.file_path, 'rb') as af:
+            file_stats = await stat(af.fileno())
+            with tqdm(
+                    total=file_stats.st_size,
+                    unit='b',
+                    unit_scale=True,
+                    unit_divisor=1024
+            ) as progress_bar:
+
+                while True:
+                    raw_bytes = await af.read(self.chunk_size)
+                    if not raw_bytes:
+                        break
+
+                    progress_bar.update(self.chunk_size)
+                    chunk = self.decompressor.decompress(raw_bytes)
+                    if not chunk:
+                        # You must construct additional pylons!
+                        continue
+
+                    lines = chunk.splitlines()
+                    yield incomplete_line + lines[0]
+                    incomplete_line = b''
+
+                    if chunk.endswith(b'\n'):
+                        full_lines = lines[1:]
+                    else:
+                        full_lines = lines[1:-1]
+                        incomplete_line = lines[-1]
+
+                    for line in full_lines:
+                        yield line
+
+            if incomplete_line:
+                yield incomplete_line
