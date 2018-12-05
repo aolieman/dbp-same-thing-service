@@ -137,9 +137,13 @@ class StreamingBZ2File:
 
                     progress_bar.update(self.chunk_size)
                     chunk = self.decompressor.decompress(raw_bytes)
-                    if not chunk or b'\n' not in chunk:
+                    if not chunk:
                         # You must construct additional pylons!
-                        # not enough bytes have been decompressed (no newline)
+                        # not enough bytes have been decompressed
+                        continue
+                    elif b'\n' not in chunk:
+                        # this chunk is so small it doesn't contain any newline
+                        self.incomplete_line += chunk
                         continue
 
                     lines = chunk.splitlines()
