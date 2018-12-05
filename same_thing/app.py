@@ -1,9 +1,9 @@
 import os
 import sys
 
-from apistar import App, Route
-from apistar.exceptions import NotFound
-
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 # ensure module is found in path
 BASE_DIR = os.path.dirname(
@@ -13,37 +13,72 @@ BASE_DIR = os.path.dirname(
 )
 sys.path.insert(0, os.path.abspath(BASE_DIR))
 
-from same_thing.db import split_values, get_connection_to_latest
+from same_thing.db import get_connection_to_latest, is_cluster_membership, sorted_cluster
 from same_thing.sink import DBP_GLOBAL_MARKER, DBP_GLOBAL_PREFIX
 
 db = get_connection_to_latest(max_retries=12, read_only=True)
+app = Starlette(debug='--debug' in sys.argv)
 
 
-def lookup(uri: str) -> dict:
+@app.route('/lookup/', methods=['GET'])
+def lookup(request: Request) -> JSONResponse:
+    uri = request.query_params.get('uri')
+    if not uri:
+        return JSONResponse({
+            'uri': 'The `uri` parameter must be provided.'
+        }, status_code=400)
+
     normalized_uri = uri.lstrip(DBP_GLOBAL_PREFIX)
     if normalized_uri.startswith(DBP_GLOBAL_MARKER):
-        normalized_uri = normalized_uri.encode('utf8')
+        normalized_uri = normalized_uri[len(DBP_GLOBAL_MARKER):].encode('utf8')
     else:
         normalized_uri = db.get(uri.encode('utf8'))
         if not normalized_uri:
-            raise NotFound()
+            return not_found(uri)
 
     value_bytes = db.get(normalized_uri)
     if not value_bytes:
-        raise NotFound()
+        return not_found(uri)
+    elif not is_cluster_membership(value_bytes):
+        normalized_uri = value_bytes
+        value_bytes = db.get(value_bytes)
 
-    return {
-        'global': DBP_GLOBAL_PREFIX + normalized_uri.decode('utf8'),
-        'locals': split_values(value_bytes),
+    singletons, local_ids = sorted_cluster(value_bytes)
+
+    response_fields = {
+        'global': f"{DBP_GLOBAL_PREFIX}{DBP_GLOBAL_MARKER}{normalized_uri.decode('utf8')}",
+        'locals': local_ids,
+        'cluster': singletons,
     }
 
+    meta_response = {
+        'documentation': 'http://dev.dbpedia.org/Global%20IRI%20Resolution%20Service',
+        'github': 'https://github.com/dbpedia/dbp-same-thing-service',
+        'license': 'http://purl.org/NET/rdflicense/cc-by3.0',
+        'license_comment': 'Free service provided by DBpedia. Usage and republication of data implies that you '
+                           'attribute either http://dbpedia.org as the source or reference the latest general DBpedia '
+                           'paper or the specific paper mentioned in the GitHub Readme.',
+        'comment': """
+            The service resolves any IRI to its cluster and displays the global IRI and its cluster.
+            Cluster members can change over time as the DBpedia community, data providers and professional services 
+            curate the linking space. 
 
-routes = [
-    Route('/lookup/', method='GET', handler=lookup),
-]
+            Usage note: 
+            1. Save the first global id AND the local IRI that seems most appropriate. 
+               It is recommended that you become a data provider, in which case the local IRI would be your IRI.  
+            2. Use the global ID to access anything DBpedia.
+            3. Use the stored local ID to update and revalidate linking and clusters.
+        """,
+    }
 
-app = App(routes=routes)
+    meta = request.query_params.get('meta')
+    if not (meta and meta == 'off'):
+        response_fields.update(meta_response)
+
+    return JSONResponse(response_fields)
 
 
-if __name__ == '__main__':
-    app.serve('0.0.0.0', 5000, debug=True, use_reloader=True)
+def not_found(uri: str) -> JSONResponse:
+    return JSONResponse({
+        'uri': uri
+    }, status_code=404)

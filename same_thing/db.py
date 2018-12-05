@@ -7,8 +7,9 @@ from rocksdb.interfaces import AssociativeMergeOperator
 
 DB_ROOT_PATH = '/dbdata'
 BACKUP_PATH = os.path.join(DB_ROOT_PATH, 'backups')
-DATA_DB_PREFIX = 'uris_'
+DATA_DB_PREFIX = 'snapshot_'
 SEPARATOR = b'<>'
+SINGLETON_LOCAL_SEPARATOR = b'||'
 
 
 backupper = BackupEngine(BACKUP_PATH)
@@ -54,10 +55,25 @@ def looks_like_datadb(dir_name):
 
 
 def split_values(value_bytes):
-    return sorted([
-        val.decode('utf8')
+    secondary_separator = SINGLETON_LOCAL_SEPARATOR.decode('utf8')
+    return [
+        val.decode('utf8').split(secondary_separator)
         for val in value_bytes.split(SEPARATOR)
-    ])
+    ]
+
+
+def is_cluster_membership(value_bytes):
+    return SINGLETON_LOCAL_SEPARATOR in value_bytes
+
+
+def sorted_cluster(value_bytes):
+    values = split_values(value_bytes)
+    sorted_values = sorted(
+        values,
+        key=lambda t: (len(t[0]), t[0])
+    )
+    singletons, local_ids = zip(*sorted_values)
+    return singletons, local_ids
 
 
 class StringAddOperator(AssociativeMergeOperator):
