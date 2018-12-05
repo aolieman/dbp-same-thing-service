@@ -6,13 +6,12 @@ import aiofiles
 from aiofiles.os import stat
 from tqdm import tqdm
 
-from .db import get_connection, backupper, DATA_DB_PREFIX
+from .db import get_connection, backupper, DATA_DB_PREFIX, SINGLETON_LOCAL_SEPARATOR
 from .source import DOWNLOAD_PATH, print_with_timestamp, get_snapshot_path, get_timestamp
 
 DBP_GLOBAL_PREFIX = 'https://'
 DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
 SNAPSHOT_KEY = b'snapshot:'
-SINGLETON_LOCAL_SEPARATOR = b'||'
 QUEUE_SIZE = 40
 
 

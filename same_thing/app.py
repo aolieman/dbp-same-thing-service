@@ -13,7 +13,7 @@ BASE_DIR = os.path.dirname(
 )
 sys.path.insert(0, os.path.abspath(BASE_DIR))
 
-from same_thing.db import split_values, get_connection_to_latest
+from same_thing.db import get_connection_to_latest, is_cluster_membership, sorted_cluster
 from same_thing.sink import DBP_GLOBAL_MARKER, DBP_GLOBAL_PREFIX
 
 db = get_connection_to_latest(max_retries=12, read_only=True)
@@ -39,11 +39,43 @@ def lookup(request: Request) -> JSONResponse:
     value_bytes = db.get(normalized_uri)
     if not value_bytes:
         return not_found(uri)
+    elif not is_cluster_membership(value_bytes):
+        normalized_uri = value_bytes
+        value_bytes = db.get(value_bytes)
 
-    return JSONResponse({
+    singletons, local_ids = sorted_cluster(value_bytes)
+
+    response_fields = {
         'global': f"{DBP_GLOBAL_PREFIX}{DBP_GLOBAL_MARKER}{normalized_uri.decode('utf8')}",
-        'locals': split_values(value_bytes),
-    })
+        'locals': local_ids,
+        'cluster': singletons,
+    }
+
+    meta_response = {
+        'documentation': 'http://dev.dbpedia.org/Global%20IRI%20Resolution%20Service',
+        'github': 'https://github.com/dbpedia/dbp-same-thing-service',
+        'license': 'http://purl.org/NET/rdflicense/cc-by3.0',
+        'license_comment': 'Free service provided by DBpedia. Usage and republication of data implies that you '
+                           'attribute either http://dbpedia.org as the source or reference the latest general DBpedia '
+                           'paper or the specific paper mentioned in the GitHub Readme.',
+        'comment': """
+            The service resolves any IRI to its cluster and displays the global IRI and its cluster.
+            Cluster members can change over time as the DBpedia community, data providers and professional services 
+            curate the linking space. 
+
+            Usage note: 
+            1. Save the first global id AND the local IRI that seems most appropriate. 
+               It is recommended that you become a data provider, in which case the local IRI would be your IRI.  
+            2. Use the global ID to access anything DBpedia.
+            3. Use the stored local ID to update and revalidate linking and clusters.
+        """,
+    }
+
+    meta = request.query_params.get('meta')
+    if not (meta and meta == 'off'):
+        response_fields.update(meta_response)
+
+    return JSONResponse(response_fields)
 
 
 def not_found(uri: str) -> JSONResponse:
