@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+    loader:
+      image: dbp-same-thing:latest
+
+    http:
+      image: dbp-same-thing:latest
