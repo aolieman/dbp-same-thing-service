@@ -6,21 +6,23 @@ volumes:
 
 services:
     loader:
+      build:
+        context: ./
+        dockerfile: Dockerfile
       image: aolieman/dbp-same-thing-service:latest
-#      environment:
-#        -
       volumes:
         - dbdata:/dbdata
         - downloads:/downloads
       command: ["python" , "-m", "same_thing.loader"]
+      tty: true
 
     http:
+      build:
+        context: ./
+        dockerfile: Dockerfile
       image: aolieman/dbp-same-thing-service:latest
       ports:
         - "127.0.0.1:8027:8000"
-#      environment:
-#        -
       volumes:
         - dbdata:/dbdata
-        - downloads:/downloads
       command: ["gunicorn" , "-c", "python:gunicorn_config", "same_thing.app:app"]

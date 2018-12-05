@@ -1,32 +1,13 @@
 version: '3'
 
-volumes:
-  dbdata:
-  downloads:
-
 services:
     loader:
-      build:
-        context: ./
-        dockerfile: Dockerfile
       image: dbp-same-thing:develop
-#      environment:
-#        -
       volumes:
         - ./same_thing:/usr/src/app/same_thing:ro
-        - dbdata:/dbdata
-        - downloads:/downloads
-      command: ["python" , "-m", "same_thing.loader"]
-      tty: true
 
     http:
       image: dbp-same-thing:develop
-      ports:
-        - "127.0.0.1:8027:8000"
-#      environment:
-#        -
       volumes:
         - ./same_thing:/usr/src/app/same_thing:ro
-        - dbdata:/dbdata
-        - downloads:/downloads
       command: ["uvicorn", "--host", "0.0.0.0", "--debug", "same_thing.app:app"]
