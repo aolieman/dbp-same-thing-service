@@ -22,11 +22,11 @@ services:
     http:
       image: dbp-same-thing:develop
       ports:
-        - "127.0.0.1:8027:5000"
+        - "127.0.0.1:8027:8000"
 #      environment:
 #        -
       volumes:
         - ./same_thing:/usr/src/app/same_thing:ro
         - dbdata:/dbdata
         - downloads:/downloads
-      command: ["python" , "-m", "same_thing.app"]
+      command: ["uvicorn", "--host", "0.0.0.0", "--debug", "same_thing.app:app"]
