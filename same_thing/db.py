@@ -57,7 +57,7 @@ def looks_like_datadb(dir_name):
 def split_values(value_bytes):
     secondary_separator = SINGLETON_LOCAL_SEPARATOR.decode('utf8')
     return [
-        val.decode('utf8').split(secondary_separator)
+        val.decode('utf8').split(secondary_separator, maxsplit=1)
         for val in value_bytes.split(SEPARATOR)
     ]
 
