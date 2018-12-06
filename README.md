@@ -1,39 +1,54 @@
 # DBpedia Same Thing Service
 Microservice that looks up global and local IRIs based on the most recent [DBpedia ID Management](http://dev.dbpedia.org/ID%20and%20Clustering) release.
 
-Query the DBpedia Same Thing Service with the IRI of a Wikidata or DBpedia entity (more coming soon) and it will return the current DBpedia global IRI for the queried IRI and all known 'local' IRIs which are considered to be the same thing. The 'local' IRIs for a global id are the members of the cluster represented/identified by the global id. The members of a cluster are assigned by the [DBpedia ID Management Cluster algorithm](http://dev.dbpedia.org/ID%20and%20Clustering) based on transitive closure of sameAs links. Querying a global ID will also show all the members of the according cluster.
+Query the DBpedia Same Thing Service with the IRI of a Wikidata or DBpedia entity (more coming soon) and it will return the current DBpedia global IRI for the queried IRI and all known "local" IRIs which are considered to be the same thing. The "local" IRIs for a global ID are the members of the cluster represented/identified by the global ID. The members of a cluster are assigned by the [DBpedia ID Management Cluster algorithm](http://dev.dbpedia.org/ID%20and%20Clustering) based on transitive closure of `owl:sameAs` links. 
 
-## Acknowledgements
-The microservice has been developed and contributed by Alex Olieman ([@aolieman](https://github.com/aolieman)).
+For each local IRI, a corresponding DBpedia singleton ID has been minted. This identifier is also used to represent the cluster in the microservice output. This service can be queried with either global, local, or singleton IRIs, and will return the same representation of a cluster in every case.
 
 ## Usage 
 You can query the experimental service deployed within the DBpedia Association infrastructure
 
-[http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q31910788](http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q31910788) 
+[http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087](http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087) 
  
- or setup your local instance based on the latest DBpedia ID Management Dump. The service is based on simple HTTP requests, whereas the uri parameter contains either the local or global IRI of interest.
+ or setup your local instance based on the latest DBpedia ID Management release. The service is based on simple HTTP requests, and accepts the `uri` parameter, which may be any global or local IRI.
 
-`curl "http://localhost:8027/lookup/?uri=http://www.wikidata.org/entity/Q8087"`
+`curl "http://localhost:8027/lookup/?meta=off&uri=http://www.wikidata.org/entity/Q8087"`
 ```
 {
   "global": "https://global.dbpedia.org/id/4y9Et",
   "locals": [
-    "http://dbpedia.org/resource/Geometry",
-    "http://de.dbpedia.org/resource/Geometrie",
-    "http://fr.dbpedia.org/resource/Géométrie",
-    "http://nl.dbpedia.org/resource/Meetkunde",
-    "http://sv.dbpedia.org/resource/Geometri",
-    "http://www.wikidata.org/entity/Q8087"
+    "http://www.wikidata.org/entity/Q8087",
+    "http://als.dbpedia.org/resource/Geometrie",
+    "http://am.dbpedia.org/resource/ጂዎሜትሪ",
+    "http://cs.dbpedia.org/resource/Geometrie",
+    "http://bpy.dbpedia.org/resource/জ্যামিতি",
+    "http://ar.dbpedia.org/resource/هندسة_رياضية",
+    "http://br.dbpedia.org/resource/Mentoniezh",
+    "http://af.dbpedia.org/resource/Meetkunde",
+    ...
+  ],
+  "cluster": [
+    "4y9Et",
+    "9RYmj",
+    "Cj9qB",
+    "DeSed",
+    "EAEXc",
+    "EFFeW",
+    "EsgRc",
+    "FVerP",
+    ...
   ]
 }
 ```
-Percent-encoding of the `uri` parameter is optional. If this example does not work when running the service locally, check if which port is specified in `docker-compose.yml`.
+Percent-encoding of the `uri` parameter is optional. If this example does not work when running the service locally, after it has fully loaded, check which port is specified in `docker-compose.yml`.
 
 ## Local Deployment
-The microservice is shipped as docker compose setup.
+The microservice is shipped as a docker compose setup.
+
 ### Requirements
 - Installed docker and [Docker Compose](https://docs.docker.com/compose/install/)
-### Running from pre-compiled docker image
+
+### Running from a pre-built docker image
 - Download the compose file: `wget https://raw.githubusercontent.com/dbpedia/dbp-same-thing-service/master/docker-compose.yml`
 - Run: `docker-compose up`
 
@@ -45,31 +60,32 @@ When running multiple containers in this way, the loading progress can unfortuna
 After the loader is finished, both containers may be run with `docker-compose up`.
 
 ### Bulk Loading
-The `loader` downloads the latest Global ID release from `downloads.dbpedia.org` and proceeds to load any source files that haven't been loaded yet into the database. This might take a while to complete. After all data is loaded, a backup is made and the loader stops running. 
+The `loader` downloads the latest Global ID release from `downloads.dbpedia.org` and proceeds to load any source files that haven't been loaded yet into the database. This might take several hours to complete. After all data is loaded, a backup is made and the loader stops running. 
 
-On subsequent restarts of the loader container (with docker-compose up or docker start command) the loader will check if a new snapshot release is available on the download server, remove old cached downloads, and load the new ID release into a fresh database. 
+On subsequent restarts of the loader container (e.g. with `docker-compose run loader` or `docker-compose up`) the loader will check if a new snapshot release is available on the download server, remove old cached downloads, and load the new ID release into a fresh database. 
 
 ### Update, Maintenance, & Zero Downtime Features
+
 #### Initial loading
-On the first start, the webserver  (`http` container) waits for the database to initialize. Only on the first run, it will have to wait until all source files have been downloaded, and will start listening for requests once the (empty) database has been created. While files are being loaded, the service will respond to requests, but will return `404` for any URI that hasn't been loaded yet. 
+To start running, the webserver  (`http` container) waits for the database to initialize. Only on the first run, it will have to wait until the source file has been downloaded, and will start listening for requests once the (empty) database has been created. While files are being loaded, the service will respond to requests, but will return `404` for any URI that hasn't been loaded yet. Output may also be incomplete until the loader is done.
 
 #### Update to a new release
-If a new dataset is available just rerun `docker-compose up` or use `docker-compose run loader`. The  `loader` will discover the new release, download it, and start to create a new database version. The running webserver however, will not be affected during the download and update process. It will keep serving requests from the already existing fully-loaded database, and will not switch to the newer database while it is running. The next time the `http` container is booted it will use the most recent database (which is typically the one that was latest to download).
+To check if a new dataset is available, use `docker-compose run loader` or simply rerun `docker-compose up`. The  `loader` will discover the new release, download it, and start to create a new database version. The running webserver however, will not be affected during the download and update process. It will keep serving requests from the already existing fully-loaded database, and will not switch to the newer database while it is running. The next time the `http` container is booted it will use the most recent database (which is typically the one that was latest to download).
 
 #### Database versioning (Backup) and Rollback
 All database versions will stay in the `dbdata` volume until they are manually removed. 
-This allows to switch back to older database version at any point of time (e.g. in case the loading of the latest release was interrupted and lead to an inconsistent state.
-In order to do so
+This allows to switch back to an older database version at any time (e.g. in case the loading of the latest release was interrupted and led to an inconsistent state.
+In order to do so:
 - get the mountpoint of the `dbdata` volume: `docker volume inspect dbp-same-thing-service_dbdata`
 - `cd` into the mountpoint directory 
 - `touch` the folder of the database version you would like to 'restore'
 - restart the `http` container
 
-After restarting the `http` container, it will use the database folder you `touched` (i.e. the database folder with the most recent timestamp).
+After restarting the `http` container, it will use the database folder you `touch`ed (i.e. the database folder with the most recent timestamp).
 **In order to reduce storage consumption, the database versions should be cleaned occasionally.**
 
 ### Development Setup
-In case you would like to modify the behavior of your local instance (by modifying python files) or to contribute enhancements to this project, you can build your own docker image. In order to do so:
+In case you would like to modify the behavior of your local instance (by editing python files) or to contribute enhancements to this project, you can build your own docker image. In order to do so:
 - Clone or fork this repository
 - `docker-compose -f docker-compose.yml -f docker-compose.dev.yml up`
 - any changes to the webapp code will trigger a live reload
@@ -85,3 +101,6 @@ If the pre-compiled version of the embedded RocksDB does not work on your CPU ar
 - Run `docker-compose up`
 
 This works because the `docker-compose.override.yml` file is automatically applied, which specifies a local image instead of the one from Docker Hub. To rebuild the image, e.g. after updating with `git pull`, run `docker-compose build`.
+
+## Acknowledgements
+The microservice is developed and maintained by Alex Olieman ([@aolieman](https://github.com/aolieman)). His work has been supported by [Qollap](https://qollap.com) and the University of Amsterdam (under [a grant](https://www.nwo.nl/en/research-and-results/research-projects/i/67/30567.html) from The Netherlands Organisation for Scientific Research).
