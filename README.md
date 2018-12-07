@@ -102,5 +102,8 @@ If the pre-compiled version of the embedded RocksDB does not work on your CPU ar
 
 This works because the `docker-compose.override.yml` file is automatically applied, which specifies a local image instead of the one from Docker Hub. To rebuild the image, e.g. after updating with `git pull`, run `docker-compose build`.
 
+## License
+This work may be used, modified, and distributed under the terms of the Apache 2.0 License. See [LICENSE](LICENSE) for the terms and conditions.
+
 ## Acknowledgements
 The microservice is developed and maintained by Alex Olieman ([@aolieman](https://github.com/aolieman)). His work has been supported by [@stamkracht](https://github.com/stamkracht) / [Qollap](https://www.qollap.com) and the University of Amsterdam (under [a grant](https://www.nwo.nl/en/research-and-results/research-projects/i/67/30567.html) from The Netherlands Organisation for Scientific Research).
