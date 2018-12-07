@@ -1,7 +1,7 @@
 # DBpedia Same Thing Service
 Microservice that looks up global and local IRIs based on the most recent [DBpedia ID Management](http://dev.dbpedia.org/ID%20and%20Clustering) release.
 
-Query the DBpedia Same Thing Service with the IRI of a Wikidata or DBpedia entity (more coming soon) and it will return the current DBpedia global IRI for the queried IRI and all known "local" IRIs which are considered to be the same thing. The "local" IRIs for a global ID are the members of the cluster represented/identified by the global ID. The members of a cluster are assigned by the [DBpedia ID Management Cluster algorithm](http://dev.dbpedia.org/ID%20and%20Clustering) based on transitive closure of `owl:sameAs` links. 
+Query the DBpedia Same Thing Service with the IRI of a Wikidata or DBpedia entity (more will follow) and it will return the current DBpedia global IRI for the queried IRI and all known "local" IRIs which are considered to be the same thing. The "local" IRIs for a global ID are the members of the cluster represented/identified by the global ID. The members of a cluster are assigned by the [DBpedia ID Management Cluster algorithm](http://dev.dbpedia.org/ID%20and%20Clustering) based on transitive closure of `owl:sameAs` links. 
 
 For each local IRI, a corresponding DBpedia singleton ID has been minted. This identifier is also used to represent the cluster in the microservice output. This service can be queried with either global, local, or singleton IRIs, and will return the same representation of a cluster in every case.
 
@@ -103,4 +103,4 @@ If the pre-compiled version of the embedded RocksDB does not work on your CPU ar
 This works because the `docker-compose.override.yml` file is automatically applied, which specifies a local image instead of the one from Docker Hub. To rebuild the image, e.g. after updating with `git pull`, run `docker-compose build`.
 
 ## Acknowledgements
-The microservice is developed and maintained by Alex Olieman ([@aolieman](https://github.com/aolieman)). His work has been supported by [Qollap](https://qollap.com) and the University of Amsterdam (under [a grant](https://www.nwo.nl/en/research-and-results/research-projects/i/67/30567.html) from The Netherlands Organisation for Scientific Research).
+The microservice is developed and maintained by Alex Olieman ([@aolieman](https://github.com/aolieman)). His work has been supported by [@stamkracht](https://github.com/stamkracht) / [Qollap](https://www.qollap.com) and the University of Amsterdam (under [a grant](https://www.nwo.nl/en/research-and-results/research-projects/i/67/30567.html) from The Netherlands Organisation for Scientific Research).
