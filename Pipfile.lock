@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9e144eab0e85ca9c2cb779ac93b8eeb33ad932627fb93110a22ec2ff4fa19086"
+            "sha256": "1b93451342e9c9a0e7b7ccc1235d32db1c0ed6ed6db2de04a1128a671e6da76c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -246,10 +246,10 @@
         },
         "starlette": {
             "hashes": [
-                "sha256:d8a502152db7b3687eff53b06d0982129df66a8962cc4b02605b091c5a7fb7c3"
+                "sha256:2df5530318b42d5bb0f8a6d9fe8124201c0e6ebde7a6e2a0c78b09a77825a094"
             ],
             "index": "pypi",
-            "version": "==0.9.4"
+            "version": "==0.9.7"
         },
         "tqdm": {
             "hashes": [
@@ -261,10 +261,10 @@
         },
         "uvicorn": {
             "hashes": [
-                "sha256:94a150fbb6ab7ef07063c1a767127058420b061634ae78c29c53c215446f4b38"
+                "sha256:db73ec548563d572154a069b9af9fa512184ef06f926fd26d60f6c5e0c3b6af3"
             ],
             "index": "pypi",
-            "version": "==0.3.21"
+            "version": "==0.3.22"
         },
         "uvloop": {
             "hashes": [
@@ -382,6 +382,14 @@
             ],
             "version": "==0.7.5"
         },
+        "pip-licenses": {
+            "hashes": [
+                "sha256:5331544561ab190b95cb4f09c78d1ba2c3f3360885c5a217aa78ccdbc9770b1d",
+                "sha256:de82dc28114dfcffd0e52a3ee41db2c465b2bd7a8bc51b4dfd19fd66c01c36cc"
+            ],
+            "index": "pypi",
+            "version": "==1.9.0"
+        },
         "prompt-toolkit": {
             "hashes": [
                 "sha256:c1d6aff5252ab2ef391c2fe498ed8c088066f66bc64a8d5c095bbf795d9fec34",
@@ -389,6 +397,12 @@
                 "sha256:fd17048d8335c1e6d5ee403c3569953ba3eb8555d710bfc548faf0712666ea39"
             ],
             "version": "==2.0.7"
+        },
+        "ptable": {
+            "hashes": [
+                "sha256:aa7fc151cb40f2dabcd2275ba6f7fd0ff8577a86be3365cd3fb297cbe09cc292"
+            ],
+            "version": "==0.9.2"
         },
         "ptyprocess": {
             "hashes": [

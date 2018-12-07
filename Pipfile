@@ -20,6 +20,7 @@ uvicorn = "*"
 
 [dev-packages]
 ipython = "*"
+pip-licenses = "*"
 
 [requires]
 python_version = "3.6"
