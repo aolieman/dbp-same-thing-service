@@ -1,3 +1,5 @@
+NOTE: Service is under development, some things might change, give feedback here: https://github.com/dbpedia/dbp-same-thing-service/issues
+
 # DBpedia Same Thing Service
 Microservice that looks up global and local IRIs based on the most recent [DBpedia ID Management](http://dev.dbpedia.org/ID%20and%20Clustering) release.
 
