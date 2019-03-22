@@ -102,7 +102,6 @@ def get_rocksdb_options():
 
     rocks_options.table_factory = rocksdb.BlockBasedTableFactory(
         filter_policy=rocksdb.BloomFilterPolicy(10),
-        block_cache=rocksdb.LRUCache(2 * (1024 ** 3)),
-        block_cache_compressed=rocksdb.LRUCache(500 * (1024 ** 2))
+        block_cache=rocksdb.LRUCache(1 * 1024**3),
     )
     return rocks_options
