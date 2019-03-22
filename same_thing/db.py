@@ -101,7 +101,8 @@ def get_rocksdb_options():
     rocks_options.keep_log_file_num = 100
 
     rocks_options.table_factory = rocksdb.BlockBasedTableFactory(
-        filter_policy=rocksdb.BloomFilterPolicy(10),
         block_cache=rocksdb.LRUCache(1 * 1024**3),
+        block_size=16 * 1024,
+        filter_policy=rocksdb.BloomFilterPolicy(10),
     )
     return rocks_options
