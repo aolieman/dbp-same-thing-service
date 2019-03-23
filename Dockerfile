@@ -1,6 +1,6 @@
 FROM python:3.6
 
-LABEL version="0.2.1"
+LABEL version="0.2.2"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
 
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
@@ -23,7 +23,6 @@ RUN mkdir /build \
     && rm -rf /build
 
 WORKDIR /usr/src/app
-COPY gunicorn_config.py ./
 
 # to avoid pip cache, this needs to be falsy
 ENV PIP_NO_CACHE_DIR=false
@@ -31,6 +30,8 @@ COPY Pipfile ./
 COPY Pipfile.lock ./
 RUN pip install Cython pipenv
 RUN pipenv install --system
+
+COPY gunicorn_config.py ./
 
 RUN mkdir same_thing
 COPY ./same_thing ./same_thing

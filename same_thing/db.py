@@ -96,13 +96,16 @@ def get_rocksdb_options():
     rocks_options.max_open_files = 300000
     rocks_options.write_buffer_size = 67 * 1024**2
     rocks_options.max_write_buffer_number = 3
-    rocks_options.target_file_size_base = 67 * 1024**2
+    rocks_options.target_file_size_base = 256 * 1024**2
     rocks_options.max_log_file_size = 4 * 1024**2
     rocks_options.keep_log_file_num = 100
 
+    # we want to set this option, but it's not included in the python client
+    # rocks_options.optimize_filters_for_hits = True
+
     rocks_options.table_factory = rocksdb.BlockBasedTableFactory(
+        block_cache=rocksdb.LRUCache(1 * 1024**3),
+        block_size=16 * 1024,
         filter_policy=rocksdb.BloomFilterPolicy(10),
-        block_cache=rocksdb.LRUCache(2 * (1024 ** 3)),
-        block_cache_compressed=rocksdb.LRUCache(500 * (1024 ** 2))
     )
     return rocks_options
