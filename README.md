@@ -9,8 +9,7 @@ For each local IRI, a corresponding DBpedia singleton ID has been minted. This i
 
 ## Usage 
 You can query the experimental service deployed within the DBpedia Association infrastructure
-
-[http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087](http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087) 
+[https://global.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087](https://global.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087) 
  
  or setup your local instance based on the latest DBpedia ID Management release. The service is based on simple HTTP requests, and accepts the `uri` parameter, which may be any global or local IRI.
 
