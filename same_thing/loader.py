@@ -4,7 +4,7 @@ import multiprocessing
 from aiorun import run
 
 from .sink import load_snapshot
-from .source import fetch_latest_snapshot, BASE_URL
+from .source import fetch_latest_snapshot
 
 
 CPU_COUNT = multiprocessing.cpu_count()
@@ -13,7 +13,7 @@ CPU_COUNT = multiprocessing.cpu_count()
 async def load_identifiers():
     loop = asyncio.get_event_loop()
     try:
-        latest_snapshot = await fetch_latest_snapshot(BASE_URL)
+        latest_snapshot = await fetch_latest_snapshot()
         await load_snapshot(latest_snapshot)
     except Exception:
         loop.stop()
