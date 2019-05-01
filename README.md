@@ -1,16 +1,15 @@
 NOTE: Service is under development, some things might change, give feedback here: https://github.com/dbpedia/dbp-same-thing-service/issues
 
 # DBpedia Same Thing Service
-Microservice that looks up global and local IRIs based on the most recent [DBpedia ID Management](http://dev.dbpedia.org/ID%20and%20Clustering) release.
+Microservice that looks up global and local IRIs based on the most recent [DBpedia ID Management](http://dev.dbpedia.org/ID_and_Clustering) release.
 
-Query the DBpedia Same Thing Service with the IRI of a Wikidata or DBpedia entity (more will follow) and it will return the current DBpedia global IRI for the queried IRI and all known "local" IRIs which are considered to be the same thing. The "local" IRIs for a global ID are the members of the cluster represented/identified by the global ID. The members of a cluster are assigned by the [DBpedia ID Management Cluster algorithm](http://dev.dbpedia.org/ID%20and%20Clustering) based on transitive closure of `owl:sameAs` links. 
+Query the DBpedia Same Thing Service with the IRI of a Wikidata or DBpedia entity (more will follow) and it will return the current DBpedia global IRI for the queried IRI and all known "local" IRIs which are considered to be the same thing. The "local" IRIs for a global ID are the members of the cluster represented/identified by the global ID. The members of a cluster are assigned by the [DBpedia ID Management Cluster algorithm](http://dev.dbpedia.org/ID_and_Clustering) based on transitive closure of `owl:sameAs` links. 
 
 For each local IRI, a corresponding DBpedia singleton ID has been minted. This identifier is also used to represent the cluster in the microservice output. This service can be queried with either global, local, or singleton IRIs, and will return the same representation of a cluster in every case.
 
 ## Usage 
 You can query the experimental service deployed within the DBpedia Association infrastructure
-
-[http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087](http://downloads.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087) 
+[https://global.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087](https://global.dbpedia.org/same-thing/lookup/?uri=http://www.wikidata.org/entity/Q8087) 
  
  or setup your local instance based on the latest DBpedia ID Management release. The service is based on simple HTTP requests, and accepts the `uri` parameter, which may be any global or local IRI.
 

@@ -1,30 +1,26 @@
 import asyncio
 import os
-import re
 import shutil
 from datetime import datetime, timezone
-from operator import itemgetter
+from urllib.parse import urlencode, quote_plus
 
 import aiofiles
 import aiohttp
-from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from same_thing.sparql_queries import latest_global_ids
+
 DOWNLOAD_PATH = '/downloads'
-BASE_URL = 'https://downloads.dbpedia.org/repo/dev/global-id-management/global-ids/'
-SNAPSHOT_NAME_FORMAT = 'global-ids-{snapshot_name}_base58.tsv.bz2'
+SNAPSHOT_FILENAME = 'global-ids_base58.tsv.bz2'
 DOWNLOAD_TIMEOUT = 40 * 60
 
 
-async def fetch_latest_snapshot(base_url):
+async def fetch_latest_snapshot():
     existing_downloads = set(os.listdir(DOWNLOAD_PATH))
 
     conn = aiohttp.TCPConnector(limit_per_host=10)
     async with aiohttp.ClientSession(connector=conn, raise_for_status=True) as session:
-        snapshots = await list_snapshots(session, base_url)
-        assert snapshots, f'No snapshots found at {base_url}'
-
-        latest_snapshot = snapshots[0]
+        latest_snapshot, snapshot_url = await find_latest_snapshot(session)
         if latest_snapshot not in existing_downloads:
             # delete older snapshots
             for old_snapshot in existing_downloads:
@@ -32,47 +28,49 @@ async def fetch_latest_snapshot(base_url):
 
             # download new snapshot
             await asyncio.gather(
-                download_snapshot(session, latest_snapshot)
+                download_snapshot(session, latest_snapshot, snapshot_url)
             )
             print_with_timestamp(f'Saved new snapshot {latest_snapshot}')
 
     return latest_snapshot
 
 
-async def list_snapshots(session, base_url):
-    async with session.get(base_url) as resp:
-        assert resp.status == 200, 'Could not GET snapshot list'
-        index_html = await resp.text()
+async def find_latest_snapshot(session):
+    payload = {'query': latest_global_ids}
+    parameters = urlencode(payload, quote_via=quote_plus)
+    sparql_request_url = f'https://databus.dbpedia.org/repo/sparql?{parameters}'
+    sparql_json_mime = 'application/sparql-results+json'
+    headers = {'Accept': sparql_json_mime}
+    async with session.get(sparql_request_url, headers=headers) as resp:
+        assert resp.status == 200, 'Could not GET latest snapshot from Databus'
+        global_json = await resp.json(content_type=sparql_json_mime)
 
-    date_re = re.compile(r'\d{4}\.\d{2}\.\d{2}')
-    soup = BeautifulSoup(index_html, 'lxml')
-    page_title = soup.title.get_text()
-    print_with_timestamp(f'Listing {page_title}')
-    snapshot_anchors = soup.find_all(href=date_re)
-    snapshot_hrefs = map(itemgetter('href'), snapshot_anchors)
-    snapshot_names = [
-        href.strip('/')
-        for href in snapshot_hrefs
-    ]
-    return sorted(snapshot_names, reverse=True)
+    assert (
+        global_json.get('results')
+        and global_json['results'].get('bindings')
+        and len(global_json['results']['bindings'])
+    ), f'No latest snapshot was found on the Databus with query: {latest_global_ids}'
+
+    first_binding = global_json['results']['bindings'][0]
+    snapshot_name = first_binding['latest']['value']
+    snapshot_url = first_binding['file']['value']
+    return snapshot_name, snapshot_url
 
 
-async def download_snapshot(session, snapshot_name):
-    snapshot_url = BASE_URL + get_snapshot_path(snapshot_name)
+async def download_snapshot(session, snapshot_name, snapshot_url):
     destination_dir = os.path.join(DOWNLOAD_PATH, snapshot_name)
     await download_file(session, snapshot_url, destination_dir)
 
 
 def get_snapshot_path(snapshot_name):
-    snapshot_filename = SNAPSHOT_NAME_FORMAT.format(snapshot_name=snapshot_name)
-    return f'{snapshot_name}/{snapshot_filename}'
+    return f'{snapshot_name}/{SNAPSHOT_FILENAME}'
 
 
 async def download_file(session, url, destination_dir=DOWNLOAD_PATH):
     async with session.get(url, timeout=DOWNLOAD_TIMEOUT) as response:
         filename = os.path.basename(url)
         filepath = os.path.join(destination_dir, filename)
-        print_with_timestamp(f'Downloading {filename}')
+        print_with_timestamp(f'Downloading {filename} to {destination_dir}')
 
         if os.path.exists(destination_dir):
             if os.path.exists(filepath):
