@@ -38,7 +38,7 @@ def get_connection(db_name, db_options=None, read_only=True):
     return rocksdb.DB(db_path, db_options, read_only)
 
 
-def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
+def get_connection_to_latest(max_retries=0, retry=0, purge_old_dbs=True, **kwargs):
     data_dbs = [
         os.path.join(DB_ROOT_PATH, subdir)
         for subdir in os.listdir(DB_ROOT_PATH)
@@ -46,7 +46,14 @@ def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
     ]
     if data_dbs:
         latest_db = max(data_dbs, key=os.path.getmtime)
+        if purge_old_dbs is True:
+            for db_path in data_dbs:
+                if db_path != latest_db:
+                    print(f'Deleting old DB {db_path}', flush=True)
+                    shutil.rmtree(db_path)
+
         return get_connection(latest_db, **kwargs)
+
     elif retry < max_retries:
         wait_seconds = 2 ** retry
         print(f'No DB found: will retry in {wait_seconds} seconds', flush=True)
