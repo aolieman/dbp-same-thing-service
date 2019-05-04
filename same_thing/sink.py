@@ -49,14 +49,14 @@ async def load_snapshot(snapshot_name):
             f'Snapshot {snapshot_name} already completed loading at {already_loaded_at}'
         )
         if db_exists(db_name):
-            return loop.stop()
+            return
         else:
             print_with_timestamp(
                 f'Data DB {db_name} needs to be restored from a backup...'
             )
             try:
                 restore_latest_with_name(snapshot_name)
-                return loop.stop()
+                return
             except BackupNotFound as e:
                 print_with_timestamp(repr(e))
                 print_with_timestamp(
