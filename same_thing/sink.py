@@ -6,9 +6,20 @@ import aiofiles
 from aiofiles.os import stat
 from tqdm import tqdm
 
-from same_thing.db import get_connection, SINGLETON_LOCAL_SEPARATOR, db_exists, get_data_db_name
+from same_thing.db import (
+    get_connection,
+    SINGLETON_LOCAL_SEPARATOR,
+    db_exists,
+    get_data_db_name,
+    replace_db,
+)
 from same_thing.restore import create_backup, restore_latest_with_name, BackupNotFound
-from same_thing.source import DOWNLOAD_PATH, print_with_timestamp, get_snapshot_path, get_timestamp
+from same_thing.source import (
+    DOWNLOAD_PATH,
+    print_with_timestamp,
+    get_snapshot_path,
+    get_timestamp,
+)
 
 DBP_GLOBAL_PREFIX = 'https://'
 DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
@@ -52,8 +63,10 @@ async def load_snapshot(snapshot_name):
                     'Proceeding to load from the latest downloaded snapshot'
                 )
 
-    # TODO: delete existing db before loading
-    # if DELETE_OLDER_DBS: delete all DBs before fresh load
+    if db_exists(db_name):
+        # write new DB to a temporary directory
+        db_name = f'_{db_name}'
+
     data_db = get_connection(db_name, read_only=False)
     snapshot_path = os.path.join(DOWNLOAD_PATH, get_snapshot_path(snapshot_name))
 
@@ -66,6 +79,10 @@ async def load_snapshot(snapshot_name):
     await queue.join()
     # stop waiting for lines
     consumer.cancel()
+
+    if db_name.startswith('_'):
+        # replace the old DB with the newly loaded one
+        replace_db(db_name[1:], db_name)
 
     print_with_timestamp(f'Loading finished! Saving backup...')
     now = get_timestamp()

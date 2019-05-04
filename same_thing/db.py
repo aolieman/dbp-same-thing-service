@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 
 import rocksdb
@@ -122,3 +123,10 @@ def get_rocksdb_options():
         filter_policy=rocksdb.BloomFilterPolicy(10),
     )
     return rocks_options
+
+
+def replace_db(db_name, temporary_name):
+    old_db_path = get_db_path(db_name)
+    new_db_path = get_db_path(temporary_name)
+    shutil.rmtree(old_db_path)
+    os.replace(new_db_path, old_db_path)
