@@ -15,23 +15,33 @@ SINGLETON_LOCAL_SEPARATOR = b'||'
 backupper = BackupEngine(BACKUP_PATH)
 
 
-def get_connection(db_name, db_options=None, read_only=True):
-    if db_options is None:
-        db_options = get_rocksdb_options()
-
+def get_db_path(db_name):
     if db_name.startswith(DB_ROOT_PATH):
         db_path = db_name
     else:
         db_path = os.path.join(DB_ROOT_PATH, db_name)
+
+    return db_path
+
+
+def get_data_db_name(snapshot_name):
+    return DATA_DB_PREFIX + snapshot_name
+
+
+def get_connection(db_name, db_options=None, read_only=True):
+    db_path = get_db_path(db_name)
+
+    if db_options is None:
+        db_options = get_rocksdb_options()
 
     return rocksdb.DB(db_path, db_options, read_only)
 
 
 def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
     data_dbs = [
-        os.path.join(DB_ROOT_PATH, sdir)
-        for sdir in os.listdir(DB_ROOT_PATH)
-        if looks_like_datadb(sdir)
+        os.path.join(DB_ROOT_PATH, subdir)
+        for subdir in os.listdir(DB_ROOT_PATH)
+        if looks_like_datadb(subdir)
     ]
     if data_dbs:
         latest_db = max(data_dbs, key=os.path.getmtime)
@@ -45,12 +55,15 @@ def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
         raise OSError(f'No DBs found in {DB_ROOT_PATH}')
 
 
+def db_exists(db_name):
+    db_path = get_db_path(db_name)
+    return os.path.isdir(db_path)
+
+
 def looks_like_datadb(dir_name):
     return (
         dir_name.startswith(DATA_DB_PREFIX)
-        and os.path.isdir(
-            os.path.join(DB_ROOT_PATH, dir_name)
-        )
+        and db_exists(dir_name)
     )
 
 

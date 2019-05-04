@@ -3,8 +3,8 @@ import multiprocessing
 
 from aiorun import run
 
-from .sink import load_snapshot
-from .source import fetch_latest_snapshot
+from same_thing.sink import load_snapshot
+from same_thing.source import fetch_latest_snapshot
 
 
 CPU_COUNT = multiprocessing.cpu_count()
