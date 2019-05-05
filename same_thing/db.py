@@ -35,7 +35,7 @@ def get_connection(db_name, db_options=None, read_only=True):
     if db_options is None:
         db_options = get_rocksdb_options()
 
-    return rocksdb.DB(db_path, db_options, read_only)
+    return rocksdb.DB(db_path, db_options, read_only=read_only)
 
 
 def get_connection_to_latest(max_retries=0, retry=0, purge_old_dbs=True, **kwargs):
