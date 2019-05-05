@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 
 import rocksdb
@@ -15,27 +16,44 @@ SINGLETON_LOCAL_SEPARATOR = b'||'
 backupper = BackupEngine(BACKUP_PATH)
 
 
-def get_connection(db_name, db_options=None, read_only=True):
-    if db_options is None:
-        db_options = get_rocksdb_options()
-
+def get_db_path(db_name):
     if db_name.startswith(DB_ROOT_PATH):
         db_path = db_name
     else:
         db_path = os.path.join(DB_ROOT_PATH, db_name)
 
-    return rocksdb.DB(db_path, db_options, read_only)
+    return db_path
 
 
-def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
+def get_data_db_name(snapshot_name):
+    return DATA_DB_PREFIX + snapshot_name
+
+
+def get_connection(db_name, db_options=None, read_only=True):
+    db_path = get_db_path(db_name)
+
+    if db_options is None:
+        db_options = get_rocksdb_options()
+
+    return rocksdb.DB(db_path, db_options, read_only=read_only)
+
+
+def get_connection_to_latest(max_retries=0, retry=0, purge_old_dbs=True, **kwargs):
     data_dbs = [
-        os.path.join(DB_ROOT_PATH, sdir)
-        for sdir in os.listdir(DB_ROOT_PATH)
-        if looks_like_datadb(sdir)
+        os.path.join(DB_ROOT_PATH, subdir)
+        for subdir in os.listdir(DB_ROOT_PATH)
+        if looks_like_datadb(subdir)
     ]
     if data_dbs:
         latest_db = max(data_dbs, key=os.path.getmtime)
+        if purge_old_dbs is True:
+            for db_path in data_dbs:
+                if db_path != latest_db:
+                    print(f'Deleting old DB {db_path}', flush=True)
+                    shutil.rmtree(db_path)
+
         return get_connection(latest_db, **kwargs)
+
     elif retry < max_retries:
         wait_seconds = 2 ** retry
         print(f'No DB found: will retry in {wait_seconds} seconds', flush=True)
@@ -45,12 +63,15 @@ def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
         raise OSError(f'No DBs found in {DB_ROOT_PATH}')
 
 
+def db_exists(db_name):
+    db_path = get_db_path(db_name)
+    return os.path.isdir(db_path)
+
+
 def looks_like_datadb(dir_name):
     return (
         dir_name.startswith(DATA_DB_PREFIX)
-        and os.path.isdir(
-            os.path.join(DB_ROOT_PATH, dir_name)
-        )
+        and db_exists(dir_name)
     )
 
 
@@ -109,3 +130,10 @@ def get_rocksdb_options():
         filter_policy=rocksdb.BloomFilterPolicy(10),
     )
     return rocks_options
+
+
+def replace_db(db_name, temporary_name):
+    old_db_path = get_db_path(db_name)
+    new_db_path = get_db_path(temporary_name)
+    shutil.rmtree(old_db_path)
+    os.replace(new_db_path, old_db_path)

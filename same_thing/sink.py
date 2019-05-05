@@ -6,17 +6,29 @@ import aiofiles
 from aiofiles.os import stat
 from tqdm import tqdm
 
-from .db import get_connection, backupper, DATA_DB_PREFIX, SINGLETON_LOCAL_SEPARATOR
-from .source import DOWNLOAD_PATH, print_with_timestamp, get_snapshot_path, get_timestamp
+from same_thing.db import (
+    get_connection,
+    SINGLETON_LOCAL_SEPARATOR,
+    db_exists,
+    get_data_db_name,
+    replace_db,
+)
+from same_thing.restore import create_backup, restore_latest_with_name, BackupNotFound
+from same_thing.source import (
+    DOWNLOAD_PATH,
+    print_with_timestamp,
+    get_snapshot_path,
+    get_timestamp,
+)
 
 DBP_GLOBAL_PREFIX = 'https://'
 DBP_GLOBAL_MARKER = 'global.dbpedia.org/id/'
-SNAPSHOT_KEY = b'snapshot:'
+SNAPSHOT_PREFIX = b'snapshot:'
 QUEUE_SIZE = 40
 
 
 def get_snapshot_key(snapshot_name):
-    return SNAPSHOT_KEY + snapshot_name.encode('utf8')
+    return SNAPSHOT_PREFIX + snapshot_name.encode('utf8')
 
 
 async def load_snapshot(snapshot_name):
@@ -30,11 +42,32 @@ async def load_snapshot(snapshot_name):
     admin_db = get_connection('admin', read_only=False)
     loop = asyncio.get_event_loop()
     snapshot_key = get_snapshot_key(snapshot_name)
-    if admin_db.get(snapshot_key):
-        print_with_timestamp(f'Snapshot {snapshot_name} has already been loaded')
-        loop.stop()
+    db_name = get_data_db_name(snapshot_name)
+    already_loaded_at = admin_db.get(snapshot_key)
+    if already_loaded_at:
+        print_with_timestamp(
+            f'Snapshot {snapshot_name} already completed loading at {already_loaded_at}'
+        )
+        if db_exists(db_name):
+            return
+        else:
+            print_with_timestamp(
+                f'Data DB {db_name} needs to be restored from a backup...'
+            )
+            try:
+                restore_latest_with_name(snapshot_name)
+                return
+            except BackupNotFound as e:
+                print_with_timestamp(repr(e))
+                print_with_timestamp(
+                    'Proceeding to load from the latest downloaded snapshot'
+                )
 
-    data_db = get_connection(DATA_DB_PREFIX + snapshot_name, read_only=False)
+    if db_exists(db_name):
+        # write new DB to a temporary directory
+        db_name = f'_{db_name}'
+
+    data_db = get_connection(db_name, read_only=False)
     snapshot_path = os.path.join(DOWNLOAD_PATH, get_snapshot_path(snapshot_name))
 
     queue = asyncio.Queue(maxsize=QUEUE_SIZE)
@@ -47,13 +80,15 @@ async def load_snapshot(snapshot_name):
     # stop waiting for lines
     consumer.cancel()
 
+    if db_name.startswith('_'):
+        # replace the old DB with the newly loaded one
+        replace_db(db_name[1:], db_name)
+
     print_with_timestamp(f'Loading finished! Saving backup...')
     now = get_timestamp()
     admin_db.put(snapshot_key, now.encode('utf8'))
-
-    backupper.create_backup(data_db, flush_before_backup=True)
-    backupper.purge_old_backups(3)
-    print_with_timestamp(f'Backup saved. All done!')
+    create_backup(data_db, snapshot_name)
+    print_with_timestamp(f'All done, loading completed without errors.')
 
 
 async def produce_lines(queue, snapshot_path):

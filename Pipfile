@@ -16,6 +16,7 @@ gunicorn = "*"
 tqdm = "*"
 starlette = "*"
 uvicorn = "*"
+tabulate = "*"
 
 [dev-packages]
 ipython = "*"
