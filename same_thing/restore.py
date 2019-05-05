@@ -1,3 +1,7 @@
+from datetime import datetime
+
+from tabulate import tabulate
+
 from same_thing.db import get_db_path, backupper, get_connection, get_data_db_name
 from same_thing.source import print_with_timestamp
 
@@ -34,19 +38,72 @@ def restore_backup(backup_id, db_name):
     )
 
 
-def restore_latest_with_name(snapshot_name):
+def get_available_snapshots():
     available_backups = reversed(backupper.get_backup_info())
-    db_name = get_data_db_name(snapshot_name)
     admin_db = get_connection('admin', read_only=True)
     available_snapshots = []
     for backup_meta in available_backups:
         backup_key = get_backup_key(backup_meta['backup_id'])
-        backup_snapshot = admin_db.get(backup_key)
-        available_snapshots.append((backup_key, backup_snapshot))
-        if backup_snapshot == snapshot_name.encode('utf8'):
-            restore_backup(backup_meta['backup_id'], db_name)
+        backup_snapshot = admin_db.get(backup_key) or b'unknown'
+        available_snapshots.append(
+            {
+                'id': backup_meta['backup_id'],
+                'key': backup_key.decode('utf8'),
+                'snapshot': backup_snapshot.decode('utf8'),
+                'timestamp': datetime.utcfromtimestamp(
+                    backup_meta['timestamp']
+                ).astimezone().isoformat(timespec='seconds')
+            }
+        )
+    return available_snapshots
+
+
+def restore_latest_with_name(snapshot_name):
+    db_name = get_data_db_name(snapshot_name)
+    available_snapshots = get_available_snapshots()
+    for snap in available_snapshots:
+        if snap['snapshot'] == snapshot_name:
+            restore_backup(snap['id'], db_name)
             break
     else:
         raise BackupNotFound(
             f'No backup of {snapshot_name} was found in {available_snapshots}'
         )
+
+
+def restore_interactively():
+    available_snapshots = get_available_snapshots()
+    print(tabulate(available_snapshots, headers='keys'))
+
+    while True:
+        query = input('Which backup would you like to restore? ')
+        for snap in available_snapshots:
+            db_name = get_data_db_name(snap['snapshot'])
+            backup_id = None
+
+            if query in snap:
+                backup_id = snap['id']
+            else:
+                try:
+                    selected_id = int(query)
+                except ValueError:
+                    selected_id = -1
+
+                if selected_id == snap['id']:
+                    backup_id = selected_id
+
+            if backup_id:
+                restore_backup(backup_id, db_name)
+                return
+        else:
+            example_id = available_snapshots[0]['id']
+            example_name = available_snapshots[0]['snapshot']
+            print(
+                f'Tip: any of the shown attributes should work, '
+                f'e.g. to restore the latest backup enter '
+                f'"{example_id}" or "{example_name}", but not both.'
+            )
+
+
+if __name__ == '__main__':
+    restore_interactively()
