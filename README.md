@@ -73,17 +73,27 @@ To start running, the webserver  (`http` container) waits for the database to in
 #### Update to a new release
 To check if a new dataset is available, use `docker-compose run loader` or simply rerun `docker-compose up`. The  `loader` will discover the new release, download it, and start to create a new database version. The running webserver however, will not be affected during the download and update process. It will keep serving requests from the already existing fully-loaded database, and will not switch to the newer database while it is running. The next time the `http` container is booted it will use the most recent database (which is typically the one that was latest to download).
 
-#### Database versioning (Backup) and Rollback
-All database versions will stay in the `dbdata` volume until they are manually removed. 
-This allows to switch back to an older database version at any time (e.g. in case the loading of the latest release was interrupted and led to an inconsistent state.
-In order to do so:
-- get the mountpoint of the `dbdata` volume: `docker volume inspect dbp-same-thing-service_dbdata`
-- `cd` into the mountpoint directory 
-- `touch` the folder of the database version you would like to 'restore'
-- restart the `http` container
+#### Database backup and restore
+By default, old database versions will will be pruned on startup of the `http` container.
+A backup is created, however, after a new database has fully loaded from a snapshot.
+Backups of the two most recent DBs are kept, to allow restoring the latest full DB, and the previous version.
 
-After restarting the `http` container, it will use the database folder you `touch`ed (i.e. the database folder with the most recent timestamp).
-**In order to reduce storage consumption, the database versions should be cleaned occasionally.**
+The latest database is automatically restored by the loader if it has gone missing (e.g. if it was manually deleted).
+A simple command-line prompt is available to manually restore a DB from a backup.
+
+To restore from a backup manually:
+- `docker-compose run loader python -m same_thing.restore`
+
+This will display an overview of available backups, and asks which backup to restore:
+
+```commandline
+  id  key       snapshot    created_at
+----  --------  ----------  -------------------------
+   5  backup:5  2019.02.28  2019-05-04T14:07:57+00:00
+   4  backup:4  2018.11.09  2019-05-04T13:05:51+00:00
+   
+Which backup would you like to restore?
+```
 
 ### Development Setup
 In case you would like to modify the behavior of your local instance (by editing python files) or to contribute enhancements to this project, you can build your own docker image. In order to do so:

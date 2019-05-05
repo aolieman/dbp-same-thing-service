@@ -50,7 +50,7 @@ def get_available_snapshots():
                 'id': backup_meta['backup_id'],
                 'key': backup_key.decode('utf8'),
                 'snapshot': backup_snapshot.decode('utf8'),
-                'timestamp': datetime.utcfromtimestamp(
+                'created_at': datetime.utcfromtimestamp(
                     backup_meta['timestamp']
                 ).astimezone().isoformat(timespec='seconds')
             }
@@ -76,12 +76,12 @@ def restore_interactively():
     print(tabulate(available_snapshots, headers='keys'))
 
     while True:
-        query = input('Which backup would you like to restore? ')
+        query = input('\nWhich backup would you like to restore? ')
         for snap in available_snapshots:
             db_name = get_data_db_name(snap['snapshot'])
             backup_id = None
 
-            if query in snap:
+            if query in snap.values():
                 backup_id = snap['id']
             else:
                 try:
