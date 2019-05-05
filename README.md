@@ -1,5 +1,3 @@
-NOTE: Service is under development, some things might change, give feedback here: https://github.com/dbpedia/dbp-same-thing-service/issues
-
 # DBpedia Same Thing Service
 Microservice that looks up global and local IRIs based on the most recent [DBpedia ID Management](http://dev.dbpedia.org/ID_and_Clustering) release.
 
@@ -8,6 +6,11 @@ The "local" IRIs for a global ID are the members of the cluster represented/iden
 
 For each local IRI, a corresponding DBpedia singleton ID has been minted. This identifier is also used to represent the cluster in the microservice output. 
 This service can be queried with either global, local, or singleton IRIs, and will return the same representation of a cluster in every case.
+
+**Note:** This service is at an early stage of development, and the stability of its API should not be relied on.
+As long as we are at [major version zero](https://semver.org/#spec-item-4), improvements will be prioritized over backwards-compatibility.
+This is an excellent time to contribute.
+Please create a [GitHub issue](https://github.com/dbpedia/dbp-same-thing-service/issues) for any bug report or enhancement request.
 
 ## Usage 
 You can query the experimental service deployed within the DBpedia Association infrastructure
