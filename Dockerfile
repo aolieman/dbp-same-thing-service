@@ -22,7 +22,8 @@ RUN mkdir /build \
     && INSTALL_PATH=/usr make install-shared \
     && rm -rf /build
 
-WORKDIR /usr/src/app
+ENV APP_DIR=/usr/src/app
+WORKDIR ${APP_DIR}
 
 # to avoid pip cache, this needs to be falsy
 ENV PIP_NO_CACHE_DIR=false
@@ -35,6 +36,8 @@ COPY gunicorn_config.py ./
 
 RUN mkdir same_thing
 COPY ./same_thing ./same_thing
+ENV PATH="${APP_DIR}:${PATH}"
+
 RUN mkdir /dbdata
 RUN mkdir /downloads
 VOLUME [ "/usr/src/app", "/dbdata", "/downloads" ]
