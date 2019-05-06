@@ -1,6 +1,6 @@
 FROM python:3.6
 
-LABEL version="0.3.1"
+LABEL version="0.3.2"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
 
 RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
