@@ -38,20 +38,10 @@ def get_connection(db_name, db_options=None, read_only=True):
     return rocksdb.DB(db_path, db_options, read_only=read_only)
 
 
-def get_connection_to_latest(max_retries=0, retry=0, purge_old_dbs=True, **kwargs):
-    data_dbs = [
-        os.path.join(DB_ROOT_PATH, subdir)
-        for subdir in os.listdir(DB_ROOT_PATH)
-        if looks_like_datadb(subdir)
-    ]
+def get_connection_to_latest(max_retries=0, retry=0, **kwargs):
+    data_dbs = get_data_dbs()
     if data_dbs:
         latest_db = max(data_dbs, key=os.path.getmtime)
-        if purge_old_dbs is True:
-            for db_path in data_dbs:
-                if db_path != latest_db:
-                    print(f'Deleting old DB {db_path}', flush=True)
-                    shutil.rmtree(db_path)
-
         return get_connection(latest_db, **kwargs)
 
     elif retry < max_retries:
@@ -73,6 +63,26 @@ def looks_like_datadb(dir_name):
         dir_name.startswith(DATA_DB_PREFIX)
         and db_exists(dir_name)
     )
+
+
+def get_data_dbs():
+    return [
+        os.path.join(DB_ROOT_PATH, subdir)
+        for subdir in os.listdir(DB_ROOT_PATH)
+        if looks_like_datadb(subdir)
+    ]
+
+
+def purge_data_dbs(keep_n_latest=1):
+    # DO NOT run this concurrently:
+    # shutil.rmtree is not atomic and will modify mtime
+    # before a dir is fully unlinked
+    data_dbs = get_data_dbs()
+    if len(data_dbs) > keep_n_latest:
+        dbs_by_mtime = sorted(data_dbs, key=os.path.getmtime, reverse=True)
+        for db_path in dbs_by_mtime[keep_n_latest:]:
+            print(f'Deleting old DB {db_path}', flush=True)
+            shutil.rmtree(db_path)
 
 
 def split_values(value_bytes):

@@ -1,23 +1,19 @@
-import os
 import sys
 
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-# ensure module is found in path
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
-sys.path.insert(0, os.path.abspath(BASE_DIR))
-
-from same_thing.db import get_connection_to_latest, is_cluster_membership, sorted_cluster
+from same_thing.db import get_connection_to_latest, is_cluster_membership, sorted_cluster, purge_data_dbs
 from same_thing.sink import DBP_GLOBAL_MARKER, DBP_GLOBAL_PREFIX
 
+debug = '--debug' in sys.argv
+if debug:
+    # assume this is run in a single process
+    purge_data_dbs()
+
 db = get_connection_to_latest(max_retries=12, read_only=True)
-app = Starlette(debug='--debug' in sys.argv)
+app = Starlette(debug=debug)
 
 
 @app.route('/lookup/', methods=['GET'])
