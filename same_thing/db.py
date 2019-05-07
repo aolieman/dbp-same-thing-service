@@ -74,7 +74,7 @@ def get_data_dbs():
 
 
 def purge_data_dbs(keep_n_latest=1):
-    # DO NOT run this concurrently:
+    # FIXME: DO NOT run this concurrently:
     # shutil.rmtree is not atomic and will modify mtime
     # before a dir is fully unlinked
     data_dbs = get_data_dbs()

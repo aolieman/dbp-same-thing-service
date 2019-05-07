@@ -17,10 +17,10 @@ def get_backup_key(backup_id):
     return b'%s%d' % (BACKUP_PREFIX, backup_id)
 
 
-def create_backup(data_db, snapshot_name):
+def create_backup(data_db, snapshot_name, admin_connection=None):
     backupper.create_backup(data_db, flush_before_backup=True)
     backup_id = next(reversed(backupper.get_backup_info()))['backup_id']
-    admin_db = get_connection('admin', read_only=False)
+    admin_db = admin_connection or get_connection('admin', read_only=False)
     backup_key = get_backup_key(backup_id)
     admin_db.put(backup_key, snapshot_name.encode('utf8'))
     backupper.purge_old_backups(2)
