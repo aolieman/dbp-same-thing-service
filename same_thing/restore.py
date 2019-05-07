@@ -17,10 +17,10 @@ def get_backup_key(backup_id):
     return b'%s%d' % (BACKUP_PREFIX, backup_id)
 
 
-def create_backup(data_db, snapshot_name):
+def create_backup(data_db, snapshot_name, admin_connection=None):
     backupper.create_backup(data_db, flush_before_backup=True)
     backup_id = next(reversed(backupper.get_backup_info()))['backup_id']
-    admin_db = get_connection('admin', read_only=False)
+    admin_db = admin_connection or get_connection('admin', read_only=False)
     backup_key = get_backup_key(backup_id)
     admin_db.put(backup_key, snapshot_name.encode('utf8'))
     backupper.purge_old_backups(2)
@@ -77,22 +77,21 @@ def restore_interactively():
 
     while True:
         query = input('\nWhich backup would you like to restore? ')
+        try:
+            selected_id = int(query)
+        except ValueError:
+            selected_id = -1
+
         for snap in available_snapshots:
-            db_name = get_data_db_name(snap['snapshot'])
             backup_id = None
 
-            if query in snap.values():
+            if selected_id == snap['id']:
+                backup_id = selected_id
+            elif query in snap.values():
                 backup_id = snap['id']
-            else:
-                try:
-                    selected_id = int(query)
-                except ValueError:
-                    selected_id = -1
-
-                if selected_id == snap['id']:
-                    backup_id = selected_id
 
             if backup_id:
+                db_name = get_data_db_name(snap['snapshot'])
                 restore_backup(backup_id, db_name)
                 return
         else:

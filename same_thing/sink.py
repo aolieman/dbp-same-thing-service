@@ -87,7 +87,7 @@ async def load_snapshot(snapshot_name):
     print_with_timestamp(f'Loading finished! Saving backup...')
     now = get_timestamp()
     admin_db.put(snapshot_key, now.encode('utf8'))
-    create_backup(data_db, snapshot_name)
+    create_backup(data_db, snapshot_name, admin_connection=admin_db)
     print_with_timestamp(f'All done, loading completed without errors.')
 
 
