@@ -77,22 +77,21 @@ def restore_interactively():
 
     while True:
         query = input('\nWhich backup would you like to restore? ')
+        try:
+            selected_id = int(query)
+        except ValueError:
+            selected_id = -1
+
         for snap in available_snapshots:
-            db_name = get_data_db_name(snap['snapshot'])
             backup_id = None
 
-            if query in snap.values():
+            if selected_id == snap['id']:
+                backup_id = selected_id
+            elif query in snap.values():
                 backup_id = snap['id']
-            else:
-                try:
-                    selected_id = int(query)
-                except ValueError:
-                    selected_id = -1
-
-                if selected_id == snap['id']:
-                    backup_id = selected_id
 
             if backup_id:
+                db_name = get_data_db_name(snap['snapshot'])
                 restore_backup(backup_id, db_name)
                 return
         else:
