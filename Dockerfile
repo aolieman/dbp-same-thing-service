@@ -15,12 +15,14 @@ RUN DEBIAN_FRONTEND=noninteractive \
     && apt-get -t stretch-backports install -y "libzstd-dev" \
     && apt-get clean
 
-RUN mkdir /build \
-    && cd /build \
-    && git clone https://github.com/facebook/rocksdb.git \
-    && cd rocksdb \
+ENV BUILD_DIR=/build
+WORKDIR ${BUILD_DIR}
+COPY download_rocksdb.py ./
+RUN ROCKS_VERSION=$(python download_rocksdb.py ${BUILD_DIR}) \
+    && tar -xzf "${BUILD_DIR}/latest.tar.gz" \
+    && cd "rocksdb-$ROCKS_VERSION" \
     && INSTALL_PATH=/usr make install-shared \
-    && rm -rf /build
+    && rm -rf ${BUILD_DIR}
 
 ENV APP_DIR=/usr/src/app
 WORKDIR ${APP_DIR}
