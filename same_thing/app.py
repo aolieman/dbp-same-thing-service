@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from starlette.applications import Starlette
@@ -6,7 +7,6 @@ from starlette.responses import JSONResponse
 
 from same_thing.db import purge_data_dbs
 from same_thing.query import get_uri
-from same_thing.sink import DBP_GLOBAL_MARKER, DBP_GLOBAL_PREFIX
 
 debug = '--debug' in sys.argv
 if debug:
@@ -14,6 +14,12 @@ if debug:
     purge_data_dbs()
 
 app = Starlette(debug=debug)
+
+
+@app.on_event('startup')
+def log_ready_message():
+    logger = logging.getLogger('uvicorn')
+    logger.info('Same Thing Service is ready for lookups.')
 
 
 @app.route('/lookup/', methods=['GET'])
