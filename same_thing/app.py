@@ -1,4 +1,6 @@
+import re
 import sys
+from urllib.parse import unquote
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -15,6 +17,10 @@ if debug:
 db = get_connection_to_latest(max_retries=12, read_only=True)
 app = Starlette(debug=debug)
 
+wiki_article_re = re.compile(
+    r'https?://(?P<locale>[a-z-]{2,}\.)wikipedia.org/wiki/(?P<slug>.+)$'
+)
+
 
 @app.route('/lookup/', methods=['GET'])
 def lookup(request: Request) -> JSONResponse:
@@ -23,11 +29,20 @@ def lookup(request: Request) -> JSONResponse:
         return JSONResponse({
             'uri': 'The `uri` parameter must be provided.'
         }, status_code=400)
-
     normalized_uri = uri.lstrip(DBP_GLOBAL_PREFIX)
     if normalized_uri.startswith(DBP_GLOBAL_MARKER):
         normalized_uri = normalized_uri[len(DBP_GLOBAL_MARKER):].encode('utf8')
     else:
+        uri = unquote(uri).replace(' ', '_').replace('"', '%22')
+        if 'dbpedia.org' in uri:
+            uri = uri.replace('dbpedia.org/page/', 'dbpedia.org/resource/')
+        else:
+            # todo: assigment expression candidate
+            wiki_match = wiki_article_re.match(uri)
+            if wiki_match:
+                locale = wiki_match.group('locale').replace('en.', '')
+                uri = f"http://{locale}dbpedia.org/resource/{wiki_match.group('slug')}"
+
         normalized_uri = db.get(uri.encode('utf8'))
         if not normalized_uri:
             return not_found(uri)
