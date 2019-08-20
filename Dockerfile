@@ -3,7 +3,6 @@ FROM python:3.7
 LABEL version="0.3.3"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
 
-RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update \
     && apt-get install -y \
@@ -13,7 +12,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
        libgflags-dev \
        liblz4-dev \
        libzstd-dev \
-    #&& apt-get -t stretch-backports install -y "libzstd-dev" \
     && apt-get clean
 
 ENV BUILD_DIR=/build
