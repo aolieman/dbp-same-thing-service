@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 LABEL version="0.3.3"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
@@ -12,7 +12,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
        libbz2-dev \
        libgflags-dev \
        liblz4-dev \
-    && apt-get -t stretch-backports install -y "libzstd-dev" \
+       libzstd-dev \
+    #&& apt-get -t stretch-backports install -y "libzstd-dev" \
     && apt-get clean
 
 ENV BUILD_DIR=/build
