@@ -19,8 +19,10 @@ You can query the experimental service deployed within the DBpedia Association i
 or setup your local instance based on the latest DBpedia ID Management release. 
 The service is accessed with HTTP GET requests, and accepts the `uri` parameter, which may be any global or local IRI.
 
+### Single URI-Cluster Lookup
+
 `curl "http://localhost:8027/lookup/?meta=off&uri=http://www.wikidata.org/entity/Q8087"`
-```
+```json
 {
   "global": "https://global.dbpedia.org/id/4y9Et",
   "locals": [
@@ -48,6 +50,100 @@ The service is accessed with HTTP GET requests, and accepts the `uri` parameter,
 }
 ```
 Percent-encoding of the `uri` parameter is optional. If this example does not work when running the service locally, after it has fully loaded, check which port is specified in `docker-compose.yml`.
+
+### Multiple URI-Cluster Lookup
+It is also possible to lookup clusters for multiple input URIs simultaneously.
+To do this, provide the `uris` parameter (instead of `uri`), and repeat it for each input URI.
+This changes the output to include multiple clusters under the `uris` key, as the following example shows:
+
+`curl "http://localhost:8027/lookup/?meta=off&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FDouglas_Adams&uris=http%3A%2F%2Fdbpedia.org%2Fpage%2FNebraska_Cornhuskers_football&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FFran%25C3%25A7ois_Legault&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FFran%C3%A7ois_Legault&uris=http%3A%2F%2Fdbpedia.org%2Fpage%2FToys_%2522R%2522_Us&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FGio_Gonzalez"`
+```json
+{
+  "uris": {
+    "http://dbpedia.org/resource/Douglas_Adams": {
+      "global": "https://global.dbpedia.org/id/3taAh",
+      "locals": [
+        "http://www.wikidata.org/entity/Q42",
+        "http://et.dbpedia.org/resource/Douglas_Adams",
+        "http://mrj.dbpedia.org/resource/Адамс,_Дуглас",
+        ...
+      ],
+      "cluster": [
+        "3taAh",
+        "5AvRJ",
+        "5CNwu",
+        ...
+      ]
+    },
+    "http://dbpedia.org/page/Nebraska_Cornhuskers_football": {
+      "global": "https://global.dbpedia.org/id/4sKM9",
+      "locals": [
+        "http://www.wikidata.org/entity/Q6984693",
+        "http://simple.dbpedia.org/resource/Nebraska_Cornhuskers_football",
+        "http://it.dbpedia.org/resource/Nebraska_Cornhuskers_football",
+        "http://dbpedia.org/resource/Nebraska_Cornhuskers_football"
+      ],
+      "cluster": [
+        "4sKM9",
+        "6Q5Yy",
+        "8aoaz",
+        "8sFkU"
+      ]
+    },
+    "http://dbpedia.org/resource/Fran%C3%A7ois_Legault": {
+      "global": "https://global.dbpedia.org/id/2rv2n",
+      "locals": [
+        "http://www.wikidata.org/entity/Q3085147",
+        "http://ko.dbpedia.org/resource/프랑수아_르고",
+        "http://fr.dbpedia.org/resource/François_Legault",
+        "http://dbpedia.org/resource/François_Legault",
+        "http://pl.dbpedia.org/resource/François_Legault"
+      ],
+      "cluster": [
+        "2rv2n",
+        "6Pqk7",
+        "6aTnM",
+        "6xys7",
+        "83poY"
+      ]
+    },
+    "http://dbpedia.org/resource/François_Legault": {
+      "global": "https://global.dbpedia.org/id/2rv2n",
+      "locals": [
+        "http://www.wikidata.org/entity/Q3085147",
+        "http://ko.dbpedia.org/resource/프랑수아_르고",
+        "http://fr.dbpedia.org/resource/François_Legault",
+        "http://dbpedia.org/resource/François_Legault",
+        "http://pl.dbpedia.org/resource/François_Legault"
+      ],
+      "cluster": [
+        "2rv2n",
+        "6Pqk7",
+        "6aTnM",
+        "6xys7",
+        "83poY"
+      ]
+    },
+    "http://dbpedia.org/page/Toys_%22R%22_Us": {
+      "global": "https://global.dbpedia.org/id/4sKpE",
+      "locals": [
+        "http://www.wikidata.org/entity/Q696334",
+        "http://ja.dbpedia.org/resource/トイザらス",
+        "http://sv.dbpedia.org/resource/Toys_%22R%22_Us",
+        ...
+      ],
+      "cluster": [
+        "4sKpE",
+        "5CJuH",
+        "5F6iU",
+        ...
+      ]
+    },
+    "http://dbpedia.org/resource/Gio_Gonzalez": null
+  }
+}
+
+```
 
 ## Local Deployment
 The microservice is shipped as a docker compose setup.
