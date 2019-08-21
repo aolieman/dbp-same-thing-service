@@ -21,6 +21,7 @@ tabulate = "*"
 [dev-packages]
 ipython = "*"
 pip-licenses = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.7"
