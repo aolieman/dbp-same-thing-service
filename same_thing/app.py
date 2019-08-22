@@ -1,51 +1,57 @@
+from __future__ import annotations
+
+import logging
 import sys
+from typing import Dict, Optional, Any, List
 
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from same_thing.db import get_connection_to_latest, is_cluster_membership, sorted_cluster, purge_data_dbs
-from same_thing.sink import DBP_GLOBAL_MARKER, DBP_GLOBAL_PREFIX
+from same_thing.db import purge_data_dbs
+from same_thing.exceptions import UriNotFound
+from same_thing.query import get_cluster, UriCluster
 
 debug = '--debug' in sys.argv
 if debug:
     # assume this is run in a single process
     purge_data_dbs()
 
-db = get_connection_to_latest(max_retries=12, read_only=True)
 app = Starlette(debug=debug)
+
+
+@app.on_event('startup')
+def log_ready_message() -> None:
+    logger = logging.getLogger('uvicorn')
+    logger.info('Same Thing Service is ready for lookups.')
 
 
 @app.route('/lookup/', methods=['GET'])
 def lookup(request: Request) -> JSONResponse:
-    uri = request.query_params.get('uri')
-    if not uri:
+    single_uri = request.query_params.get('uri')
+    uris = request.query_params.getlist('uris') or [single_uri]
+    if not any(uris):
         return JSONResponse({
             'uri': 'The `uri` parameter must be provided.'
         }, status_code=400)
 
-    normalized_uri = uri.lstrip(DBP_GLOBAL_PREFIX)
-    if normalized_uri.startswith(DBP_GLOBAL_MARKER):
-        normalized_uri = normalized_uri[len(DBP_GLOBAL_MARKER):].encode('utf8')
+    fields_by_uri: Dict[str, Optional[UriCluster]] = {}
+    for uri in uris:
+        try:
+            fields_by_uri[uri] = get_cluster(uri)
+        except UriNotFound:
+            fields_by_uri[uri] = None
+
+    response_fields: Dict[str, Any] = {}
+    if not any(fields_by_uri.values()):
+        if single_uri:
+            return single_uri_not_found(single_uri)
+        else:
+            return multiple_uris_not_found(uris)
+    elif single_uri:
+        response_fields = fields_by_uri[single_uri]
     else:
-        normalized_uri = db.get(uri.encode('utf8'))
-        if not normalized_uri:
-            return not_found(uri)
-
-    value_bytes = db.get(normalized_uri)
-    if not value_bytes:
-        return not_found(uri)
-    elif not is_cluster_membership(value_bytes):
-        normalized_uri = value_bytes
-        value_bytes = db.get(value_bytes)
-
-    singletons, local_ids = sorted_cluster(value_bytes)
-
-    response_fields = {
-        'global': f"{DBP_GLOBAL_PREFIX}{DBP_GLOBAL_MARKER}{normalized_uri.decode('utf8')}",
-        'locals': local_ids,
-        'cluster': singletons,
-    }
+        response_fields['uris'] = fields_by_uri
 
     meta = request.query_params.get('meta')
     if not (meta and meta == 'off'):
@@ -58,20 +64,27 @@ def lookup(request: Request) -> JSONResponse:
                                'DBpedia paper or the specific paper mentioned in the GitHub Readme.',
             'comment': """
                 The service resolves any IRI to its cluster and displays the global IRI and its cluster members.
-                Cluster members can change over time as the DBpedia community, data providers and professional services curate the linking space. 
+                Cluster members can change over time as the DBpedia community, 
+                data providers and professional services curate the linking space. 
     
                 Usage note: 
-                1. Save the first global id AND the local IRI that seems most appropriate. 
+                1. Save the global ID AND the local IRI that seems most appropriate. 
                    It is recommended that you become a data provider, in which case the local IRI would be your IRI.  
                 2. Use the global ID to access anything DBpedia.
-                3. Use the stored local ID to update and revalidate linking and clusters.
+                3. Use the stored local ID to update and re-validate linking and clusters.
             """,
         }
 
     return JSONResponse(response_fields)
 
 
-def not_found(uri: str) -> JSONResponse:
+def single_uri_not_found(uri: str) -> JSONResponse:
     return JSONResponse({
         'uri': uri
+    }, status_code=404)
+
+
+def multiple_uris_not_found(uris: List[str]) -> JSONResponse:
+    return JSONResponse({
+        'uris': uris
     }, status_code=404)

@@ -25,4 +25,4 @@ services:
         - "127.0.0.1:8027:8000"
       volumes:
         - dbdata:/dbdata
-      command: ["gunicorn" , "-c", "python:gunicorn_config", "same_thing.app:app"]
+      command: ["gunicorn" , "-c", "gunicorn_config.py", "same_thing.app:app"]

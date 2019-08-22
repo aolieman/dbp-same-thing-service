@@ -1,9 +1,8 @@
-FROM python:3.6
+FROM python:3.7
 
-LABEL version="0.3.3"
+LABEL version="0.4.0"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
 
-RUN echo "deb http://ftp.debian.org/debian stretch-backports main" >> /etc/apt/sources.list
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update \
     && apt-get install -y \
@@ -12,15 +11,17 @@ RUN DEBIAN_FRONTEND=noninteractive \
        libbz2-dev \
        libgflags-dev \
        liblz4-dev \
-    && apt-get -t stretch-backports install -y "libzstd-dev" \
+       libzstd-dev \
     && apt-get clean
 
-RUN mkdir /build \
-    && cd /build \
-    && git clone https://github.com/facebook/rocksdb.git \
-    && cd rocksdb \
+ENV BUILD_DIR=/build
+WORKDIR ${BUILD_DIR}
+COPY download_rocksdb.py ./
+RUN ROCKS_VERSION=$(python download_rocksdb.py ${BUILD_DIR}) \
+    && tar -xzf "${BUILD_DIR}/latest.tar.gz" \
+    && cd "rocksdb-$ROCKS_VERSION" \
     && INSTALL_PATH=/usr make install-shared \
-    && rm -rf /build
+    && rm -rf ${BUILD_DIR}
 
 ENV APP_DIR=/usr/src/app
 WORKDIR ${APP_DIR}
@@ -40,6 +41,6 @@ ENV PATH="${APP_DIR}:${PATH}"
 
 RUN mkdir /dbdata
 RUN mkdir /downloads
-VOLUME [ "/usr/src/app", "/dbdata", "/downloads" ]
+VOLUME [ "/dbdata", "/downloads" ]
 
 CMD [ "python", "-m", "same_thing.loader" ]

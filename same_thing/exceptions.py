@@ -1,0 +1,3 @@
+
+class UriNotFound(Exception):
+    pass
