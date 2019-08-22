@@ -21,7 +21,7 @@ The service is accessed with HTTP GET requests, and accepts the `uri` parameter,
 
 ### Single URI-Cluster Lookup
 
-`curl "http://localhost:8027/lookup/?meta=off&uri=http://www.wikidata.org/entity/Q8087"`
+`curl "http://localhost:8027/lookup/?meta=off&uri=http%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ8087"`
 ```
 {
   "global": "https://global.dbpedia.org/id/4y9Et",
@@ -49,7 +49,7 @@ The service is accessed with HTTP GET requests, and accepts the `uri` parameter,
   ]
 }
 ```
-Percent-encoding of the `uri` parameter is optional. If this example does not work when running the service locally, after it has fully loaded, check which port is specified in `docker-compose.yml`.
+If this example does not work when running the service locally, after it has fully loaded, check which port is specified in `docker-compose.yml`.
 
 ### Multiple URI-Cluster Lookup
 It is also possible to lookup clusters for multiple input URIs simultaneously.
