@@ -1,6 +1,6 @@
 FROM python:3.7
 
-LABEL version="0.3.3"
+LABEL version="0.4.0"
 LABEL maintainer="Alex Olieman <alex@olieman.net>"
 
 RUN DEBIAN_FRONTEND=noninteractive \

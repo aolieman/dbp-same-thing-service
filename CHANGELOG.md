@@ -4,11 +4,12 @@ All notable changes to this project should be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2019-08-22
 ### Added
 - `http`: Rewrite specific URL patterns to DBpedia resource URIs:
   - `http://<locale>.dbpedia.org/page/<slug>`
   - `https?://<locale>.wikipedia.org/wiki/<slug>`
+- `http`: Allow lookup of multiple URI clusters at once with the `uris` parameter.
 - `http`: log in the Uvicorn logger that app startup is ready.
 
 ### Changed

@@ -22,7 +22,7 @@ The service is accessed with HTTP GET requests, and accepts the `uri` parameter,
 ### Single URI-Cluster Lookup
 
 `curl "http://localhost:8027/lookup/?meta=off&uri=http://www.wikidata.org/entity/Q8087"`
-```json
+```
 {
   "global": "https://global.dbpedia.org/id/4y9Et",
   "locals": [
@@ -57,7 +57,7 @@ To do this, provide the `uris` parameter (instead of `uri`), and repeat it for e
 This changes the output to include multiple clusters under the `uris` key, as the following example shows:
 
 `curl "http://localhost:8027/lookup/?meta=off&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FDouglas_Adams&uris=http%3A%2F%2Fdbpedia.org%2Fpage%2FNebraska_Cornhuskers_football&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FFran%25C3%25A7ois_Legault&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FFran%C3%A7ois_Legault&uris=http%3A%2F%2Fdbpedia.org%2Fpage%2FToys_%2522R%2522_Us&uris=http%3A%2F%2Fdbpedia.org%2Fresource%2FGio_Gonzalez"`
-```json
+```
 {
   "uris": {
     "http://dbpedia.org/resource/Douglas_Adams": {
