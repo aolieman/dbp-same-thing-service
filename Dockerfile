@@ -41,6 +41,6 @@ ENV PATH="${APP_DIR}:${PATH}"
 
 RUN mkdir /dbdata
 RUN mkdir /downloads
-VOLUME [ "/usr/src/app", "/dbdata", "/downloads" ]
+VOLUME [ "/dbdata", "/downloads" ]
 
 CMD [ "python", "-m", "same_thing.loader" ]
